@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cursos Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@400;600;700&family=Space+Mono&family=Patrick+Hand&family=Architects+Daughter&family=Shadows+Into+Light&family=Permanent+Marker&family=Kalam:wght@400;700&family=Indie+Flower&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<header id="topbar">
+  <h1>Cursos <span>Studio</span></h1>
+  <div class="top-actions">
+    <span id="db-status" class="db-status" title="Estado">●</span>
+    <button class="btn btn-dark btn-sm" id="btn-decorate">🎨 Decorar</button>
+    <button class="btn btn-dark btn-sm" id="btn-settings-open">⚙️</button>
+    <button class="btn btn-primary btn-sm" id="btn-new-course">＋ Curso</button>
+  </div>
+</header>
+
+<aside id="sidebar">
+  <div class="sb-label">Mis Cursos</div>
+  <div id="sb-courses"></div>
+  <div class="sep"></div>
+  <div class="sb-label">Cursos Externos</div>
+  <div id="sb-externals"></div>
+  <div class="sep"></div>
+  <div class="sb-label">Herramientas</div>
+  <div class="sb-item" id="nav-home">🏠 Inicio</div>
+  <div class="sb-item" id="nav-global-cal">📅 Calendario global</div>
+  <div class="sb-item" id="nav-new">➕ Nuevo curso</div>
+  <div class="sb-item" id="nav-new-external">🌐 Curso externo</div>
+</aside>
+
+<div id="sticker-canvas"></div>
+
+<main id="main">
+
+  <!-- HOME -->
+  <section id="home-view" class="view">
+    <p class="hero-text">Aprende con<br><em>intención.</em></p>
+    <p class="hero-sub">Organiza YouTube, Spotify, sitios web, textos y exámenes IA en cursos con calendario propio.</p>
+    <div class="home-actions">
+      <button class="btn btn-primary" id="hero-cta">✨ Crear curso</button>
+      <button class="btn btn-outline" id="hero-cta-external">🌐 Curso externo</button>
+    </div>
+    <h3 class="section-title">Mis cursos</h3>
+    <div class="courses-grid" id="courses-grid"></div>
+    <h3 class="section-title">Externos</h3>
+    <div class="courses-grid" id="externals-grid"></div>
+  </section>
+
+  <!-- COURSE -->
+  <section id="course-view" class="view" style="display:none">
+    <div class="cv-header">
+      <button class="btn btn-outline btn-sm" id="cv-back">← Volver</button>
+      <h2 class="cv-title" id="cv-title"></h2>
+      <div class="view-toggle">
+        <button class="vbtn on" data-view="cal">📅 Calendario</button>
+        <button class="vbtn"    data-view="mod">📋 Módulos</button>
+        <button class="vbtn"    data-view="syllabus">§ Sílabo</button>
+        <button class="vbtn"    data-view="grades">📊 Notas</button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="cv-add-module">＋ Módulo</button>
+      <button class="btn btn-outline btn-sm" id="cv-settings">⚙️ Config</button>
+    </div>
+
+    <!-- Calendar view -->
+    <div id="cal-view">
+      <div class="cal-nav">
+        <button class="btn btn-outline btn-sm" id="cal-prev">‹</button>
+        <button class="btn btn-outline btn-sm" id="cal-next">›</button>
+        <h3 id="week-label"></h3>
+        <button class="btn btn-outline btn-sm" id="cal-today">Hoy</button>
+      </div>
+      <div id="cal-section-label" class="cal-section-label" style="display:none"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <!-- Module list view -->
+    <div id="mod-view" style="display:none">
+      <div class="mod-list" id="mod-list"></div>
+    </div>
+
+    <!-- Syllabus view -->
+    <div id="syllabus-view" style="display:none">
+    </div>
+
+    <!-- Grades view -->
+    <div id="grades-view" style="display:none">
+      <div class="grades-header">
+        <h3 class="grades-title">Calificaciones</h3>
+        <button class="btn btn-outline btn-sm" id="btn-final-exam">🏁 Generar examen final</button>
+      </div>
+      <div class="grades-summary" id="grades-summary"></div>
+      <table class="grades-table" id="grades-table"></table>
+    </div>
+  </section>
+
+  <!-- GLOBAL CALENDAR -->
+  <section id="global-cal-view" class="view" style="display:none">
+    <div class="cv-header">
+      <button class="btn btn-outline btn-sm" id="gcv-back">← Volver</button>
+      <h2 class="cv-title">📅 Calendario Global</h2>
+      <div class="cal-nav" style="margin-left:auto">
+        <button class="btn btn-outline btn-sm" id="gcal-prev">‹</button>
+        <button class="btn btn-outline btn-sm" id="gcal-next">›</button>
+        <h3 id="gweek-label" style="font-family:'Fraunces',serif;font-size:18px;min-width:200px"></h3>
+        <button class="btn btn-outline btn-sm" id="gcal-today">Hoy</button>
+      </div>
+    </div>
+    <p class="hint">Vista unificada: módulos de todos tus cursos + cursos externos recurrentes.</p>
+    <div class="cal-grid" id="gcal-grid"></div>
+  </section>
+
+</main>
+
+<!-- PLAYER -->
+<div id="player">
+  <div class="pl-main">
+    <div class="pl-topbar">
+      <button class="btn btn-dark btn-sm" id="pl-close">✕</button>
+      <div class="pl-title" id="pl-title"></div>
+      <div class="pl-timer" id="pl-timer">⏱ 0:00</div>
+      <button class="btn btn-dark btn-sm" id="pl-timer-btn">⏸</button>
+      <button class="btn btn-dark btn-sm" id="pl-duplicate" title="Duplicar a otra fecha">⎘</button>
+      <button class="btn btn-dark btn-sm" id="pl-delete-mod" title="Eliminar este módulo">🗑</button>
+      <button class="btn btn-primary btn-sm" id="pl-mark-done">✅ Visto</button>
+    </div>
+    <div class="pl-embed" id="pl-embed"></div>
+    <div class="pl-foot"><span id="pl-meta"></span></div>
+  </div>
+  <aside class="pl-note-panel">
+    <div class="pl-note-head">
+      📝 Apuntes
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" id="pl-preview">👁</button>
+        <button class="btn btn-outline btn-sm" id="pl-save-md" title="Descargar .md">💾</button>
+        <button class="btn btn-primary btn-sm"  id="pl-save-obsidian" title="Guardar a Obsidian">📓</button>
+      </div>
+    </div>
+    <div class="pl-note-body">
+      <textarea id="note-editor" placeholder="# Apuntes&#10;&#10;Markdown soportado…"></textarea>
+      <div class="note-preview md" id="note-preview"></div>
+    </div>
+    <div class="note-foot">
+      <span class="hint" id="note-hint">Auto-guardado</span>
+      <button class="btn btn-outline btn-sm" id="pl-copy-md">Copiar</button>
+    </div>
+  </aside>
+</div>
+
+<!-- STICKER PANEL -->
+<aside id="stk-panel">
+  <h3>🎨 Decorar</h3>
+  <div class="stk-tabs">
+    <button class="stk-tab on" data-tab="emoji">Emoji</button>
+    <button class="stk-tab"    data-tab="text">Texto</button>
+    <button class="stk-tab"    data-tab="img">Imagen</button>
+    <button class="stk-tab"    data-tab="bg">Fondo</button>
+  </div>
+
+  <div class="stk-form" data-pane="emoji">
+    <div class="sec-label">Emoji</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <div class="sec-label">Movimiento</div>
+    <select class="stk-select" id="e-category">
+      <option value="fixed">🔒 Fijo</option>
+      <option value="globo">🎈 Globo (flota)</option>
+      <option value="rueda">🌀 Rueda (gira)</option>
+      <option value="carta">🃏 Carta (flip)</option>
+      <option value="candelabro">🕯 Lámpara colgante</option>
+    </select>
+    <div class="sec-label">Tamaño</div>
+    <input type="range" id="e-size" min="20" max="80" value="44">
+    <button class="btn btn-primary" id="add-emoji-stk">Agregar</button>
+  </div>
+
+  <div class="stk-form" data-pane="text" style="display:none">
+    <div class="sec-label">Texto</div>
+    <input id="t-val" placeholder="Escribe…">
+    <div class="sec-label">Estilo</div>
+    <select class="stk-select" id="t-style">
+      <option value="plain">Sin fondo</option>
+      <option value="postit">📌 Post-it</option>
+      <option value="border">▣ Con borde</option>
+    </select>
+    <div class="sec-label">Fuente</div>
+    <select class="stk-select" id="t-font">
+      <option value="Caveat">Caveat</option>
+      <option value="Patrick Hand">Patrick Hand</option>
+      <option value="Architects Daughter">Architects Daughter</option>
+      <option value="Shadows Into Light">Shadows Into Light</option>
+      <option value="Permanent Marker">Permanent Marker</option>
+      <option value="Kalam">Kalam</option>
+      <option value="Indie Flower">Indie Flower</option>
+      <option value="Fraunces">Fraunces</option>
+    </select>
+    <div class="sec-label">Tamaño</div>
+    <input type="range" id="t-size" min="14" max="64" value="32">
+    <div class="sec-label">Color</div>
+    <div class="swatch-row" id="txt-colors"></div>
+    <div class="sec-label">Movimiento</div>
+    <select class="stk-select" id="t-category">
+      <option value="fixed">🔒 Fijo</option>
+      <option value="globo">🎈 Globo</option>
+      <option value="rueda">🌀 Rueda</option>
+      <option value="carta">🃏 Carta</option>
+      <option value="candelabro">🕯 Lámpara</option>
+    </select>
+    <button class="btn btn-primary" id="add-text-stk">Agregar</button>
+  </div>
+
+  <div class="stk-form" data-pane="img" style="display:none">
+    <div class="sec-label">Imagen (PNG transparente OK)</div>
+    <input type="file" id="img-file" accept="image/*">
+    <div class="sec-label">Movimiento</div>
+    <select class="stk-select" id="i-category">
+      <option value="fixed">🔒 Fijo</option>
+      <option value="globo">🎈 Globo</option>
+      <option value="rueda">🌀 Rueda</option>
+      <option value="carta">🃏 Carta</option>
+      <option value="candelabro">🕯 Lámpara</option>
+    </select>
+    <button class="btn btn-primary" id="add-img-stk">Agregar</button>
+  </div>
+
+  <div class="stk-form" data-pane="bg" style="display:none">
+    <div class="sec-label">Color</div>
+    <div class="bg-grid" id="bg-grid"></div>
+    <div class="sec-label">Imagen</div>
+    <input type="file" id="bg-file" accept="image/*">
+    <button class="btn btn-primary btn-sm" id="apply-bg-img">Aplicar</button>
+  </div>
+
+  <div class="sep"></div>
+  <button class="btn btn-sm btn-danger" id="clear-stickers">🗑 Limpiar todos</button>
+  <p class="hint" style="margin-top:10px">Arrastra para mover. Suelta en la zona roja para borrar.</p>
+</aside>
+
+<div id="del-zone">🗑 Suelta para eliminar</div>
+<div id="toast"></div>
+<div id="modal-root"></div>
+
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/stickers.js"></script>
+<script src="/js/notes.js"></script>
+<script src="/js/player.js"></script>
+<script src="/js/calendar.js"></script>
+<script src="/js/courses.js"></script>
+<script src="/js/externals.js"></script>
+<script src="/js/exams.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
