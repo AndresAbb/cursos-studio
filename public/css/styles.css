@@ -268,8 +268,18 @@ body {
   color: var(--text2); transition: all .15s;
 }
 .mod-action:hover { border-color: var(--acc); color: var(--acc); }
-.check-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; flex-shrink: 0; font-size: 12px; background: transparent; color: var(--text2); }
-.check-btn.on { background: var(--acc2); border-color: var(--acc2); color: #fff; }
+.check-btn {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s; flex-shrink: 0; background: transparent;
+}
+.check-btn::after { content: ''; font-size: 12px; line-height: 1; color: var(--text2); }
+.check-btn:not(.on):hover { border-color: var(--acc2); }
+.check-btn:not(.on):hover::after { content: '✓'; color: var(--acc2); opacity: .45; }
+.check-btn.on { background: var(--acc2); border-color: var(--acc2); }
+.check-btn.on::after { content: '✓'; color: #fff; }
+.check-btn.on:hover { background: var(--gold); border-color: var(--gold); }
+.check-btn.on:hover::after { content: '↺'; color: #fff; }
 .check-btn:hover { border-color: var(--acc2); }
 
 /* GRADES */
@@ -287,8 +297,8 @@ body {
 
 /* MODAL */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2000; display: flex; align-items: center; justify-content: center; animation: fadeIn .15s ease; }
-.modal { background: var(--surface); border-radius: 16px; padding: 28px; width: min(580px, 95vw); max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
-.modal.wide { width: min(720px, 95vw); }
+.modal { background: var(--surface); border-radius: 16px; padding: 28px; width: min(680px, 125vw); max-height: 100vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+.modal.wide { width: min(1200px, 150vw); }
 .modal h2 { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; margin-bottom: 20px; }
 .modal h3 { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; margin: 12px 0 6px; }
 .fg { margin-bottom: 14px; }

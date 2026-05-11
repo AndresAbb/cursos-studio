@@ -46,6 +46,8 @@ const ModuleSchema = new Schema({
   // AI exam config
   examConfig: {
     prompt:        { type: String, default: '' },
+    examType:      { type: String, enum: ['multiple-choice','essay','project','mixed','case-study','oral'], default: 'mixed' },
+    difficulty:    { type: String, enum: ['introductory','intermediate','advanced','expert'], default: 'intermediate' },
     questionCount: { type: Number, default: 10 },
     timeLimit:     { type: Number, default: 30 },
     provider:      { type: String, enum: ['openai','anthropic','manual'], default: 'manual' },

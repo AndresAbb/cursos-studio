@@ -1,5 +1,5 @@
-// Boot
-(async () => {
+// Exposed as window.appBoot so App.jsx can call it after React renders the DOM.
+window.appBoot = async () => {
   // 1. Health + capabilities
   try {
     State.capabilities = await API.health();
@@ -48,8 +48,7 @@
         try {
           toast('⏳ Generando prompt…', 3000);
           const { prompt } = await API.getExamPrompt(State.cur._id, scope, Math.max(0, week));
-          const el = $('ex-prompt');
-          if (el) el.value = prompt;
+          Exams.applyPromptTemplate(prompt);
           toast('✅ Prompt generado');
         } catch (err) { toast('❌ ' + err.message); }
       })();
@@ -63,4 +62,4 @@
   Course.showHome();
 
   console.log('📚 Cursos Studio v3 iniciado');
-})();
+};

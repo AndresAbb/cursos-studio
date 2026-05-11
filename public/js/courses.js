@@ -163,7 +163,7 @@ const Course = {
           <button class="mod-action" data-act="edit" data-id="${m._id}" title="Editar">✎</button>
           <button class="mod-action" data-act="del"  data-id="${m._id}" title="Eliminar">×</button>
         </div>
-        <div class="check-btn ${m.done ? 'on' : ''}" data-check="${m._id}">${m.done ? '✓' : ''}</div>
+        <div class="check-btn ${m.done ? 'on' : ''}" data-check="${m._id}" title="${m.done ? 'Desmarcar' : 'Marcar como visto'}"></div>
       </div>`;
       return out;
     }).join('');
