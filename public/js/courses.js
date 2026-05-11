@@ -346,15 +346,28 @@ const Course = {
 
   // ── Syllabus label editor ──────────────────────
   showSyllabusModal() {
-    const labels = [...(State.cur?.syllabusLabels || [])];
+    // Deep-clone labels so edits don't mutate State until saved.
+    const labels = (State.cur?.syllabusLabels || []).map(l => ({ ...l }));
 
     const renderRows = () => labels.map((l, i) => `
       <div class="syl-row" data-i="${i}">
-        <input class="syl-inp syl-title" placeholder="Título de la sección" value="${escapeHTML(l.title)}">
-        <input class="syl-inp syl-desc"  placeholder="Descripción (opcional)" value="${escapeHTML(l.description || '')}">
-        <input type="number" class="syl-inp syl-sw" value="${l.startWeek+1}" min="1" style="width:70px" title="Semana inicio">
-        <input type="number" class="syl-inp syl-ew" value="${l.endWeek+1}"   min="1" style="width:70px" title="Semana fin">
-        <button type="button" class="mod-action syl-del" data-i="${i}">×</button>
+        <div class="syl-row-fields">
+          <input class="syl-inp syl-title" placeholder="Título de la sección" value="${escapeHTML(l.title || '')}">
+          <input class="syl-inp syl-desc"  placeholder="Descripción (opcional)" value="${escapeHTML(l.description || '')}">
+          <input type="number" class="syl-inp syl-sw" value="${(l.startWeek||0)+1}" min="1" style="width:70px" title="Semana inicio">
+          <input type="number" class="syl-inp syl-ew" value="${(l.endWeek||0)+1}"   min="1" style="width:70px" title="Semana fin">
+          <button type="button" class="btn btn-outline btn-sm syl-sheet-toggle" data-i="${i}" title="Abrir hoja de examen de esta sección">
+            ${l.examsheetContent?.trim() ? '✏️ Editar Examsheet' : '📄 Open Examsheet'}
+          </button>
+          <button type="button" class="mod-action syl-del" data-i="${i}">×</button>
+        </div>
+        <div class="syl-sheet-panel" id="syl-sheet-${i}" style="display:none">
+          <textarea class="syl-inp syl-sheet-content code" rows="8"
+            placeholder="Pega aquí el contenido de referencia para el examen de esta sección (Markdown)…"
+            style="width:100%;resize:vertical;font-family:monospace;font-size:12px;box-sizing:border-box"
+          >${escapeHTML(l.examsheetContent || '')}</textarea>
+          <p class="hint" style="margin:4px 0 0">Este contenido se inyecta automáticamente en los prompts de examen que cubran esta sección.</p>
+        </div>
       </div>`).join('');
 
     showModal('📋 Secciones del sílabo', `
@@ -362,7 +375,6 @@ const Course = {
       <div id="syl-rows">${renderRows()}</div>
       <button type="button" class="btn btn-outline btn-sm" id="syl-add" style="margin-top:10px">＋ Añadir sección</button>
     `, async () => {
-      // Read rows
       const rows = document.querySelectorAll('.syl-row');
       const updated = [];
       rows.forEach(row => {
@@ -370,9 +382,10 @@ const Course = {
         if (!title) return;
         updated.push({
           title,
-          description: row.querySelector('.syl-desc').value.trim(),
-          startWeek:   parseInt(row.querySelector('.syl-sw').value) - 1 || 0,
-          endWeek:     parseInt(row.querySelector('.syl-ew').value) - 1 || 0,
+          description:      row.querySelector('.syl-desc').value.trim(),
+          startWeek:        parseInt(row.querySelector('.syl-sw').value) - 1 || 0,
+          endWeek:          parseInt(row.querySelector('.syl-ew').value) - 1 || 0,
+          examsheetContent: row.querySelector('.syl-sheet-content')?.value || '',
         });
       });
       await API.updateCourse(State.cur._id, { syllabusLabels: updated });
@@ -380,26 +393,65 @@ const Course = {
       toast('✅ Secciones guardadas');
       this.renderSyllabus();
       if (State.view === 'mod') this.renderModules();
-    });
+    }, { wide: true });
 
-    document.getElementById('syl-rows').innerHTML = renderRows();
-
-    document.getElementById('syl-add').addEventListener('click', () => {
-      labels.push({ title: '', description: '', startWeek: 0, endWeek: 0 });
-      document.getElementById('syl-rows').innerHTML = renderRows();
-      wireDelBtns();
-    });
-
-    const wireDelBtns = () => {
+    const wireAll = () => {
+      // Delete buttons
       document.querySelectorAll('.syl-del').forEach(btn => {
         btn.addEventListener('click', () => {
+          // Snapshot current textarea values before re-render.
+          document.querySelectorAll('.syl-row').forEach(row => {
+            const i = parseInt(row.dataset.i);
+            if (!isNaN(i) && labels[i]) {
+              const ta = row.querySelector('.syl-sheet-content');
+              if (ta) labels[i].examsheetContent = ta.value;
+              labels[i].title       = row.querySelector('.syl-title').value;
+              labels[i].description = row.querySelector('.syl-desc').value;
+              labels[i].startWeek   = parseInt(row.querySelector('.syl-sw').value) - 1 || 0;
+              labels[i].endWeek     = parseInt(row.querySelector('.syl-ew').value) - 1 || 0;
+            }
+          });
           labels.splice(parseInt(btn.dataset.i), 1);
           document.getElementById('syl-rows').innerHTML = renderRows();
-          wireDelBtns();
+          wireAll();
+        });
+      });
+
+      // Examsheet toggle buttons
+      document.querySelectorAll('.syl-sheet-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i     = parseInt(btn.dataset.i);
+          const panel = document.getElementById(`syl-sheet-${i}`);
+          if (!panel) return;
+          const open = panel.style.display !== 'none';
+          panel.style.display = open ? 'none' : 'block';
+          btn.textContent = open
+            ? (labels[i]?.examsheetContent?.trim() ? '✏️ Editar Examsheet' : '📄 Open Examsheet')
+            : '🔼 Cerrar Examsheet';
+          if (!open) panel.querySelector('textarea')?.focus();
         });
       });
     };
-    wireDelBtns();
+
+    document.getElementById('syl-add').addEventListener('click', () => {
+      // Snapshot current values before pushing new row.
+      document.querySelectorAll('.syl-row').forEach(row => {
+        const i = parseInt(row.dataset.i);
+        if (!isNaN(i) && labels[i]) {
+          const ta = row.querySelector('.syl-sheet-content');
+          if (ta) labels[i].examsheetContent = ta.value;
+          labels[i].title       = row.querySelector('.syl-title').value;
+          labels[i].description = row.querySelector('.syl-desc').value;
+          labels[i].startWeek   = parseInt(row.querySelector('.syl-sw').value) - 1 || 0;
+          labels[i].endWeek     = parseInt(row.querySelector('.syl-ew').value) - 1 || 0;
+        }
+      });
+      labels.push({ title: '', description: '', startWeek: 0, endWeek: 0, examsheetContent: '' });
+      document.getElementById('syl-rows').innerHTML = renderRows();
+      wireAll();
+    });
+
+    wireAll();
   },
 
   // ── Create course ──────────────────────────────

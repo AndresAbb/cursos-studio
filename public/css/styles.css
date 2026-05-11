@@ -631,11 +631,10 @@ body {
 /* ── SYLLABUS LABEL EDITOR ──────────────────────── */
 .syl-row {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 0;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
 }
 .syl-row:last-child { border-bottom: none; }
 .syl-inp {
@@ -664,6 +663,29 @@ body {
   transition: all .15s;
 }
 .syl-del:hover { background: rgba(180,40,40,.1); }
+
+/* Examsheet panel inside each syllabus row */
+.syl-row-fields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.syl-sheet-panel {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px 6px;
+  background: var(--surface2, #f7f3eb);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.syl-sheet-toggle {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dark-bg .syl-sheet-panel { background: rgba(255,253,247,.06); }
 
 /* ── GRADES HEADER ──────────────────────────────── */
 .grades-header {

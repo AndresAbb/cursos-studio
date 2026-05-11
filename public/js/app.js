@@ -27,7 +27,7 @@ window.appBoot = async () => {
   GlobalCalendar.init();
   Course.init();
   Externals.init();
-  Exams.init();
+  await Exams.init();   // async: loads exam_templates.json before any UI
   Settings.init();
 
   // 4. Wire final exam button (rendered on grades view)

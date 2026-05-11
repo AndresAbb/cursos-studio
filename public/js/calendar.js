@@ -10,6 +10,7 @@ const Calendar = {
     $('week-label').textContent = `${fmt(ws)} — ${fmt(we)}`;
 
     const courseWeek = calcCourseWeek(State.cur.startDate, ws);
+    $('week-label').textContent = `Sem ${courseWeek} · ${fmt(ws)} — ${fmt(we)}`;
     const today      = new Date(); today.setHours(0, 0, 0, 0);
 
     // Show syllabus section label for current week

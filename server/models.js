@@ -78,10 +78,11 @@ const CourseSchema = new Schema({
     notes:    String,
   }],
   syllabusLabels: [{
-    startWeek:   { type: Number, default: 0 },
-    endWeek:     { type: Number, default: 0 },
-    title:       { type: String, default: '' },
-    description: { type: String, default: '' },
+    startWeek:        { type: Number, default: 0 },
+    endWeek:          { type: Number, default: 0 },
+    title:            { type: String, default: '' },
+    description:      { type: String, default: '' },
+    examsheetContent: { type: String, default: '' },
   }],
 }, { timestamps: true });
 
