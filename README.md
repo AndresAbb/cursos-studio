@@ -57,22 +57,58 @@ APP_PASSWORD=
 AUTH_SECRET=          # opcional: mantén sesiones activas tras reinicio
 ```
 
-## Exponer a internet (port forwarding)
+## Arquitectura: cada instancia es tuya
 
-Para que un amigo se conecte a tu instancia desde fuera de tu red:
+Cursos Studio sigue el modelo de **Minecraft en modo servidor propio**:
 
-1. **Pon contraseña** en `APP_PASSWORD` antes de abrir el puerto — sin ella,
-   cualquiera con tu IP puede leer/modificar tus cursos.
-2. En tu router, redirige el puerto `3000` a la IP local de tu PC.
-3. Permite el puerto en el firewall de Windows:
-   `netsh advfirewall firewall add rule name="CursosStudio" dir=in action=allow protocol=TCP localport=3000`
-4. Comparte `http://TU_IP_PUBLICA:3000` + la contraseña con tu amigo.
-5. Si tu IP cambia (la mayoría de ISPs domésticos), usa un dynamic-DNS como
-   DuckDNS para tener un hostname estable.
+- **Tus datos viven en tu máquina.** Nadie más tiene acceso a tus cursos,
+  notas, calificaciones o configuración — ni tus amigos.
+- **Tu amigo tiene su propia instancia.** Sus datos viven en su máquina.
+- **El port forwarding sirve exclusivamente para que los servidores se
+  comuniquen entre sí** — para enviarse señales de presencia ("Alice está
+  estudiando", "Bob completó un módulo"). Eso es todo.
 
-Ver `MULTIPLAYER.md` para el flujo de invitación de amigos (independiente
-de la contraseña — los endpoints de presencia entre instancias usan tokens
-por-amigo).
+Tu amigo **nunca** visita tu URL en el navegador ni necesita tu contraseña.
+Su servidor le hace POST a los únicos dos endpoints que son públicos en tu
+instancia:
+
+| Endpoint | Qué hace | Qué devuelve |
+|---|---|---|
+| `POST /api/friends/accept/:token` | Acepta un enlace de invitación | Solo: nombre, emoji, userId — sin datos de cursos |
+| `POST /api/friends/presence` | Recibe una señal de presencia | Solo: `{ ok: true }` |
+
+**Todo lo demás — cursos, módulos, notas, calificaciones, ajustes — está
+protegido por contraseña y es inaccesible desde fuera.**
+
+---
+
+## Port forwarding (configuración)
+
+Necesitas abrir tu servidor al exterior para que el servidor de tu amigo
+pueda enviarte señales de presencia. Los pasos:
+
+1. **Pon contraseña** en `APP_PASSWORD` antes de abrir el puerto.
+   Sin ella, cualquiera que encuentre tu IP puede leer y modificar tus datos.
+   Tu amigo pone la suya en su propia instancia — no comparten contraseña.
+
+2. **Redirige el puerto en tu router:** puerto externo `3000` → IP local de
+   tu PC → puerto `3000`. El menú suele llamarse "Port Forwarding",
+   "Virtual Server" o "NAT" (varía por marca de router).
+
+3. **Permite el puerto en el firewall de Windows** (como Administrador):
+   ```
+   netsh advfirewall firewall add rule name="CursosStudio" dir=in action=allow protocol=TCP localport=3000
+   ```
+
+4. **IP pública dinámica:** la mayoría de ISPs domésticos cambian tu IP
+   cada pocos días. Usa DuckDNS (gratis) para tener un hostname estable
+   como `tualias.duckdns.org`.
+
+5. **El flujo de invitación** (intercambio de enlace con tu amigo) se
+   describe en `MULTIPLAYER.md`.
+
+Tu amigo hace los mismos pasos en su máquina. Luego intercambian un enlace
+de invitación una sola vez — después los servidores se hablan solos.
 
 ## Instalación de yt-dlp
 
