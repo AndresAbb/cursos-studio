@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iniciar sesión — Cursos Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #f5f0e8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #2a2520;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+    width: 100%;
+    max-width: 360px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+  .sub {
+    font-size: 14px;
+    color: #6b6358;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #4a4338;
+  }
+  input[type=password] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #d9cfc2;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    background: #fafaf7;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type=password]:focus { border-color: #c8622a; }
+  button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 12px;
+    background: #c8622a;
+    color: #fff;
+    border: 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  button:hover { background: #b35522; }
+  button:disabled { opacity: .6; cursor: wait; }
+  .err {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #fdecea;
+    color: #a4271a;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  .err.show { display: block; }
+  .emoji { font-size: 38px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+  <form class="card" id="form">
+    <div class="emoji">📚</div>
+    <h1>Cursos Studio</h1>
+    <div class="sub">Ingresa la contraseña para continuar</div>
+    <label for="pw">Contraseña</label>
+    <input type="password" id="pw" name="password" autocomplete="current-password" autofocus required>
+    <button type="submit" id="btn">Entrar</button>
+    <div class="err" id="err"></div>
+  </form>
+<script>
+  const form = document.getElementById('form');
+  const pw   = document.getElementById('pw');
+  const btn  = document.getElementById('btn');
+  const err  = document.getElementById('err');
+  const next = new URLSearchParams(location.search).get('next') || '/';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.classList.remove('show');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw.value }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error');
+      }
+      location.href = next.startsWith('/') ? next : '/';
+    } catch (e) {
+      err.textContent = e.message || 'Contraseña incorrecta';
+      err.classList.add('show');
+      pw.select();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

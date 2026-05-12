@@ -5,6 +5,10 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       ...opts,
     });
+    if (res.status === 401 && !path.startsWith('/api/auth') && !path.startsWith('/api/login')) {
+      location.href = `/login.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+      throw new Error('unauthorized');
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(err.error || `HTTP ${res.status}`);
@@ -12,6 +16,10 @@ const API = {
     if (res.headers.get('content-type')?.includes('json')) return res.json();
     return res.text();
   },
+
+  // Auth
+  authStatus() { return this.req('/api/auth/status'); },
+  logout()     { return this.req('/api/logout', { method: 'POST' }); },
 
   // Health
   health() { return this.req('/api/health'); },

@@ -48,7 +48,31 @@ ANTHROPIC_API_KEY=
 # Spotify (opcional pero necesario para extraer tracks reales)
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
+
+# Autenticación (opcional)
+# Si exposes el servidor a internet (port forwarding, túnel, VPS),
+# pon una contraseña aquí — el resto del mundo verá una pantalla de login.
+# Déjalo vacío para uso local sin contraseña.
+APP_PASSWORD=
+AUTH_SECRET=          # opcional: mantén sesiones activas tras reinicio
 ```
+
+## Exponer a internet (port forwarding)
+
+Para que un amigo se conecte a tu instancia desde fuera de tu red:
+
+1. **Pon contraseña** en `APP_PASSWORD` antes de abrir el puerto — sin ella,
+   cualquiera con tu IP puede leer/modificar tus cursos.
+2. En tu router, redirige el puerto `3000` a la IP local de tu PC.
+3. Permite el puerto en el firewall de Windows:
+   `netsh advfirewall firewall add rule name="CursosStudio" dir=in action=allow protocol=TCP localport=3000`
+4. Comparte `http://TU_IP_PUBLICA:3000` + la contraseña con tu amigo.
+5. Si tu IP cambia (la mayoría de ISPs domésticos), usa un dynamic-DNS como
+   DuckDNS para tener un hostname estable.
+
+Ver `MULTIPLAYER.md` para el flujo de invitación de amigos (independiente
+de la contraseña — los endpoints de presencia entre instancias usan tokens
+por-amigo).
 
 ## Instalación de yt-dlp
 

@@ -16,6 +16,7 @@ const { isConfigured: spotifyConfigured, fetchItems: spotifyFetchItems } = requi
 const { checkEmbed } = require('./services/embedCheck');
 const { writeNote } = require('./services/obsidian');
 const { generateExam: aiGenerateExam, isConfigured: aiConfigured } = require('./services/ai');
+const auth = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,7 +26,26 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cursos
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(auth.middleware);
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// ─── Auth routes ─────────────────────────────────
+app.get('/api/auth/status', (req, res) => {
+  res.json({ enabled: auth.isEnabled(), authed: auth.isAuthed(req) });
+});
+
+app.post('/api/login', (req, res) => {
+  if (!auth.isEnabled()) return res.json({ ok: true });
+  const token = auth.login(req.body?.password);
+  if (!token) return res.status(401).json({ error: 'Contraseña incorrecta' });
+  res.setHeader('Set-Cookie', auth.cookieHeader(token));
+  res.json({ ok: true });
+});
+
+app.post('/api/logout', (req, res) => {
+  res.setHeader('Set-Cookie', auth.clearCookieHeader());
+  res.json({ ok: true });
+});
 
 // uploads dir
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads');
@@ -595,8 +615,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// ─── Catch-all → SPA ─────────────────────────────
+// ─── Catch-all → SPA (or login page if auth enabled and not signed in) ─
 app.get('*', (req, res) => {
+  if (auth.isEnabled() && !auth.isAuthed(req) && req.path !== '/login.html') {
+    return res.redirect(`/login.html?next=${encodeURIComponent(req.originalUrl)}`);
+  }
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
@@ -607,7 +630,8 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 const wsClients = new Set();
 
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
+  if (!auth.isAuthed(req)) { ws.close(1008, 'unauthorized'); return; }
   wsClients.add(ws);
   ws.on('close', () => wsClients.delete(ws));
   ws.on('error', () => wsClients.delete(ws));
