@@ -136,6 +136,8 @@ const SettingsSchema = new Schema({
   userId:      { type: String, default: '' },
   displayName: { type: String, default: 'Yo' },
   avatarEmoji: { type: String, default: '🎓' },
+  // Public URL used in invite links (overrides auto-detected LAN IP)
+  publicUrl:   { type: String, default: '' },
 }, { timestamps: true });
 
 // ─── FRIEND CONNECTION ───────────────────────────

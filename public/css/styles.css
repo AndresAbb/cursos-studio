@@ -788,6 +788,29 @@ body {
   font-size: 13px;
 }
 
+/* Network address info */
+.fr-net-section { margin-top: 10px; }
+.fr-net-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+.fr-net-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.fr-ip-chip {
+  font-size: 11px; font-family: 'Space Mono', monospace;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 2px 8px; color: var(--text2);
+  cursor: default; user-select: all;
+}
+.fr-ip-active {
+  background: rgba(74,124,89,.12);
+  border-color: var(--acc2);
+  color: var(--acc2);
+  font-weight: 600;
+}
+.fr-net-custom { margin-top: 4px; }
+.fr-link-hint code {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; background: var(--s2);
+  padding: 1px 4px; border-radius: 4px;
+}
+
 /* Friend list */
 .fr-empty, .fr-feed-empty {
   color: var(--text2); font-size: 12px; padding: 4px 0;

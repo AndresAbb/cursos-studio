@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const crypto = require('crypto');
+const os     = require('os');
 
 const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend } = require('./models');
 const { isAvailable: ytdlpAvailable, fetchPlaylist } = require('./ytdlp');
@@ -640,6 +641,27 @@ function throttled(map, key, intervalMs) {
 // ════════════════════════════════════════════════
 const VALID_EVENTS = new Set(['friend.studying', 'progress.updated', 'exam.upcoming', 'poke.sent']);
 
+// Returns all non-loopback IPv4 addresses on this machine
+function getLanIps() {
+  const ifaces = os.networkInterfaces();
+  const ips = [];
+  for (const iface of Object.values(ifaces)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) ips.push(addr.address);
+    }
+  }
+  return ips;
+}
+
+// Best URL to embed in invite links: publicUrl setting > first LAN IP > localhost
+async function resolvePublicBase(req) {
+  const s = await Settings.findById('global').lean();
+  if (s?.publicUrl) return s.publicUrl.replace(/\/$/, '');
+  const ips = getLanIps();
+  if (ips.length) return `${req.protocol}://${ips[0]}:${PORT}`;
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 async function ensureUserId() {
   let s = await Settings.findById('global');
   if (!s) s = await Settings.create({ _id: 'global' });
@@ -651,18 +673,32 @@ async function ensureUserId() {
 // FRIENDS — ROUTES
 // ════════════════════════════════════════════════
 
-// Own identity
+// Own identity + network info
 app.get('/api/friends/me', w(async (req, res) => {
   const s = await ensureUserId();
-  res.json({ userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji });
+  const lanIps = getLanIps();
+  const activeBase = await resolvePublicBase(req);
+  res.json({
+    userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji,
+    publicUrl: s.publicUrl || '',
+    lanIps,
+    activeBase,
+  });
 }));
 
 app.patch('/api/friends/me', w(async (req, res) => {
-  const allowed = ['displayName', 'avatarEmoji'];
+  const allowed = ['displayName', 'avatarEmoji', 'publicUrl'];
   const data = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
   const s = await Settings.findByIdAndUpdate('global', data, { new: true, upsert: true });
-  res.json({ userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji });
+  const lanIps = getLanIps();
+  const activeBase = await resolvePublicBase(req);
+  res.json({
+    userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji,
+    publicUrl: s.publicUrl || '',
+    lanIps,
+    activeBase,
+  });
 }));
 
 // List accepted friends
@@ -670,19 +706,19 @@ app.get('/api/friends', w(async (req, res) => {
   res.json(await Friend.find({ status: { $ne: 'blocked' } }).sort({ createdAt: -1 }).lean());
 }));
 
-// Generate invite link
+// Generate invite link — uses publicUrl setting or auto-detected LAN IP
 app.post('/api/friends/invite', w(async (req, res) => {
-  const s = await ensureUserId();
+  const s    = await ensureUserId();
+  const base = await resolvePublicBase(req);
   const inviteToken = crypto.randomBytes(16).toString('hex');
   const pushToken   = crypto.randomBytes(16).toString('hex');
   await Friend.create({ inviteToken, pushToken, status: 'pending' });
-  const host = `${req.protocol}://${req.get('host')}`;
-  const link = `${host}/?accept-friend=${inviteToken}` +
+  const link = `${base}/?accept-friend=${inviteToken}` +
                `&from=${encodeURIComponent(s.userId)}` +
                `&name=${encodeURIComponent(s.displayName || 'Amigo')}` +
                `&emoji=${encodeURIComponent(s.avatarEmoji || '🎓')}` +
-               `&url=${encodeURIComponent(host)}`;
-  res.json({ link });
+               `&url=${encodeURIComponent(base)}`;
+  res.json({ link, base });
 }));
 
 // Accept invite (called by the friend who opens the link)

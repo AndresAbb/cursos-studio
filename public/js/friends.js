@@ -226,6 +226,14 @@ const Friends = {
           <input id="fr-name" class="fr-name-input" value="${escapeHTML(this.me.displayName)}" placeholder="Tu nombre" maxlength="40">
           <button id="fr-save-me" class="btn btn-outline btn-xs">Guardar</button>
         </div>
+        <div class="fr-net-section">
+          <div class="fr-net-label">Tu dirección para amigos</div>
+          ${this._renderNetworkInfo()}
+          <div class="fr-net-custom">
+            <input id="fr-public-url" class="fr-link-input" placeholder="URL pública opcional (ngrok, Tailscale…)" value="${escapeHTML(this.me.publicUrl || '')}">
+            <div class="fr-link-hint">Déjalo vacío para usar la IP de red local detectada automáticamente.</div>
+          </div>
+        </div>
       </div>
 
       <div class="fr-section">
@@ -288,11 +296,25 @@ const Friends = {
     `).join('');
   },
 
+  _renderNetworkInfo() {
+    const lanIps    = this.me.lanIps    || [];
+    const activeBase = this.me.activeBase || '';
+    if (!lanIps.length && !activeBase) return '';
+    const chips = lanIps.map(ip =>
+      `<span class="fr-ip-chip" title="IP de red local">${escapeHTML(ip)}:${location.port || '3000'}</span>`
+    ).join('');
+    return `<div class="fr-net-chips">
+      ${chips}
+      ${activeBase ? `<span class="fr-ip-chip fr-ip-active" title="URL usada en invitaciones">▶ ${escapeHTML(activeBase)}</span>` : ''}
+    </div>`;
+  },
+
   async _saveIdentity() {
-    const name  = document.getElementById('fr-name')?.value?.trim()  || 'Yo';
-    const emoji = document.getElementById('fr-emoji')?.value?.trim() || '🎓';
+    const name      = document.getElementById('fr-name')?.value?.trim()      || 'Yo';
+    const emoji     = document.getElementById('fr-emoji')?.value?.trim()     || '🎓';
+    const publicUrl = document.getElementById('fr-public-url')?.value?.trim() || '';
     try {
-      this.me = await API.friendsUpdateMe({ displayName: name, avatarEmoji: emoji });
+      this.me = await API.friendsUpdateMe({ displayName: name, avatarEmoji: emoji, publicUrl });
       toast('✅ Identidad guardada');
     } catch (err) { toast('❌ ' + err.message); }
   },
@@ -302,13 +324,16 @@ const Friends = {
     if (!out) return;
     try {
       out.textContent = '⏳ Generando…';
-      const { link } = await API.friendsInvite();
+      const { link, base } = await API.friendsInvite();
       out.innerHTML = `
         <div class="fr-link-box">
           <input class="fr-link-input" id="fr-link-val" value="${escapeHTML(link)}" readonly>
           <button class="btn btn-outline btn-xs" id="fr-copy-btn">Copiar</button>
         </div>
-        <div class="fr-link-hint">Comparte este enlace con tu amigo. Se consume al aceptar.</div>
+        <div class="fr-link-hint">
+          Usando: <code>${escapeHTML(base)}</code><br>
+          Comparte con tu amigo. Se consume al aceptar.
+        </div>
       `;
       document.getElementById('fr-copy-btn')?.addEventListener('click', () => {
         navigator.clipboard.writeText(link).then(() => toast('📋 Copiado'));
