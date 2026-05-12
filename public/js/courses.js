@@ -146,7 +146,7 @@ const Course = {
 
       if (m.week !== lastWeek) {
         lastWeek = m.week;
-        out += `<div class="week-head">Semana ${m.week + 1}</div>`;
+        out += `<div class="week-head">Semana ${m.week}</div>`;
       }
 
       const col  = typeColor(m.type, State.cur.color);
