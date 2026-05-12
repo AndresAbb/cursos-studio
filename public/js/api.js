@@ -85,6 +85,7 @@ const API = {
   listFriends()                 { return this.req('/api/friends'); },
   friendsInvite()               { return this.req('/api/friends/invite', { method: 'POST' }); },
   friendsAccept(token, data)    { return this.req(`/api/friends/accept/${token}`, { method: 'POST', body: JSON.stringify(data) }); },
+  friendFromAccept(data)        { return this.req('/api/friends/from-accept', { method: 'POST', body: JSON.stringify(data) }); },
   updateFriend(id, data)        { return this.req(`/api/friends/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
   removeFriend(id)              { return this.req(`/api/friends/${id}`, { method: 'DELETE' }); },
   blockFriend(id)               { return this.req(`/api/friends/${id}/block`, { method: 'POST' }); },

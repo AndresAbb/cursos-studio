@@ -838,6 +838,9 @@ body {
   overflow: hidden; text-overflow: ellipsis;
 }
 .fr-link-hint { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.4; }
+.fr-invite-actions { display: flex; gap: 6px; margin-top: 4px; }
+.fr-invite-actions .btn { flex: 1; }
+.fr-paste-row { display: flex; gap: 6px; }
 
 /* Activity feed */
 .fr-feed { display: flex; flex-direction: column; gap: 4px; }

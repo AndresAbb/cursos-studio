@@ -708,6 +708,26 @@ app.post('/api/friends/accept/:token', w(async (req, res) => {
   });
 }));
 
+// Create a local friend record after accepting a cross-instance invite
+// (the accepting side calls this to record the other party on their own server)
+app.post('/api/friends/from-accept', w(async (req, res) => {
+  const { friendId, friendName, friendEmoji, friendUrl, pushToken } = req.body;
+  // Idempotent: don't create duplicates for the same remote userId
+  if (friendId) {
+    const existing = await Friend.findOne({ friendId });
+    if (existing) { existing.status = 'accepted'; await existing.save(); return res.json(existing); }
+  }
+  const f = await Friend.create({
+    friendId:    friendId    || '',
+    friendName:  friendName  || 'Amigo',
+    friendEmoji: friendEmoji || '👤',
+    friendUrl:   friendUrl   || '',
+    pushToken:   pushToken   || '',
+    status:      'accepted',
+  });
+  res.json(f);
+}));
+
 // Update per-friend settings (sharing toggles, mute, friendUrl)
 app.patch('/api/friends/:id', w(async (req, res) => {
   const allowed = ['friendName','friendEmoji','friendUrl','shareStudying','shareProgress','shareExamUpcoming','mutePresence','mutePokes'];
