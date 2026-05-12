@@ -78,4 +78,16 @@ const API = {
     if (!res.ok) throw new Error('Error subiendo archivo');
     return res.json();
   },
+
+  // Friends / Co-learning
+  friendsMe()                   { return this.req('/api/friends/me'); },
+  friendsUpdateMe(data)         { return this.req('/api/friends/me', { method: 'PATCH', body: JSON.stringify(data) }); },
+  listFriends()                 { return this.req('/api/friends'); },
+  friendsInvite()               { return this.req('/api/friends/invite', { method: 'POST' }); },
+  friendsAccept(token, data)    { return this.req(`/api/friends/accept/${token}`, { method: 'POST', body: JSON.stringify(data) }); },
+  updateFriend(id, data)        { return this.req(`/api/friends/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
+  removeFriend(id)              { return this.req(`/api/friends/${id}`, { method: 'DELETE' }); },
+  blockFriend(id)               { return this.req(`/api/friends/${id}/block`, { method: 'POST' }); },
+  pokeFriend(id, data)          { return this.req(`/api/friends/${id}/poke`, { method: 'POST', body: JSON.stringify(data) }); },
+  friendsBroadcast(type, payload) { return this.req('/api/friends/broadcast', { method: 'POST', body: JSON.stringify({ type, payload }) }); },
 };

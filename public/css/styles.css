@@ -721,3 +721,143 @@ body {
 .stk-chandelier { display: flex; flex-direction: column; align-items: center; pointer-events: none; transform-origin: top center; animation: pendulum-soft 4s ease-in-out infinite; }
 .stk-rope { width: 1px; background: linear-gradient(to bottom, transparent 0%, #8b7355 30%, #6b5840 100%); height: 60px; }
 .stk-anchor { width: 6px; height: 6px; background: #6b5840; border-radius: 50%; margin-top: -3px; box-shadow: 0 0 0 2px rgba(107,88,64,.3); }
+
+/* ── FRIENDS PANEL ──────────────────────────────── */
+.friends-panel {
+  position: fixed;
+  top: 52px; right: 0; bottom: 0;
+  width: 320px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform .25s ease;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+}
+.friends-panel.open { transform: translateX(0); }
+
+.fr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 15px;
+  position: sticky; top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+.fr-close-btn {
+  background: none; border: none;
+  font-size: 20px; cursor: pointer;
+  color: var(--text2);
+  line-height: 1; padding: 0 4px;
+}
+.fr-close-btn:hover { color: var(--text); }
+
+.fr-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.fr-section:last-child { border-bottom: none; flex: 1; }
+.fr-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+
+/* Identity row */
+.fr-identity-row { display: flex; gap: 6px; align-items: center; }
+.fr-emoji-input {
+  width: 44px; text-align: center;
+  font-size: 20px; padding: 4px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--s2); color: var(--text);
+}
+.fr-name-input {
+  flex: 1; padding: 6px 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--s2); color: var(--text);
+  font-size: 13px;
+}
+
+/* Friend list */
+.fr-empty, .fr-feed-empty {
+  color: var(--text2); font-size: 12px; padding: 4px 0;
+}
+
+.fr-friend-item {
+  background: var(--s2);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.fr-friend-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fr-friend-emoji { font-size: 22px; }
+.fr-friend-name  { flex: 1; font-weight: 600; font-size: 14px; }
+.fr-friend-actions { display: flex; gap: 4px; }
+.fr-poke-btn, .fr-action-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer;
+  padding: 2px 6px; font-size: 13px;
+  color: var(--text2); transition: background .15s;
+}
+.fr-poke-btn:hover { background: var(--s2); color: var(--text); }
+.fr-action-btn:hover { background: rgba(180,40,40,.08); color: var(--danger); border-color: var(--danger); }
+
+/* Per-friend toggles */
+.fr-toggles { display: flex; flex-direction: column; gap: 4px; }
+.fr-toggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text2);
+  cursor: pointer; padding: 2px 0;
+}
+.fr-toggle input[type=checkbox] { accent-color: var(--acc2); width: 14px; height: 14px; cursor: pointer; }
+.fr-mute-toggle { color: var(--text2); opacity: .8; }
+
+/* Invite */
+.fr-invite-btn { width: 100%; margin-top: 4px; }
+.fr-invite-out { margin-top: 10px; }
+.fr-link-box { display: flex; gap: 6px; }
+.fr-link-input {
+  flex: 1; padding: 6px 8px; font-size: 11px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--s2); color: var(--text);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.fr-link-hint { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.4; }
+
+/* Activity feed */
+.fr-feed { display: flex; flex-direction: column; gap: 4px; }
+.fr-feed-item {
+  font-size: 12px; color: var(--text);
+  background: var(--s2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+
+/* Button extras */
+.btn-xs { padding: 4px 10px; font-size: 12px; }
+.btn-sm { padding: 5px 12px; font-size: 13px; }
+
+/* Dark mode for friends panel */
+.dark-bg .friends-panel { background: rgba(42,32,21,.95); }
+.dark-bg .fr-name-input, .dark-bg .fr-emoji-input, .dark-bg .fr-link-input {
+  background: rgba(255,253,247,.07);
+  color: var(--text);
+  border-color: rgba(255,253,247,.2);
+}
+.dark-bg .fr-friend-item { background: rgba(255,253,247,.05); }

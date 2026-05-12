@@ -29,6 +29,7 @@ window.appBoot = async () => {
   Externals.init();
   await Exams.init();   // async: loads exam_templates.json before any UI
   Settings.init();
+  await Friends.init();
 
   // 4. Wire final exam button (rendered on grades view)
   document.addEventListener('click', e => {

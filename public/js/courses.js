@@ -76,6 +76,8 @@ const Course = {
       Stickers.loadAndRender();
       this.renderSidebar();
       this.switchView('cal');
+      Friends.emitStudying(c.title);
+      Friends.checkAndEmitExamUpcoming(State.curModules, c.startDate);
     } catch (err) { toast('❌ ' + err.message); }
   },
 
@@ -206,6 +208,7 @@ const Course = {
           m.done = !m.done;
           this.renderModules();
           Calendar.render();
+          if (m.done) Friends.emitProgress(m.title, State.cur?.title);
         } catch (err) { toast('❌ ' + err.message); }
       });
     });

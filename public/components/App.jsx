@@ -15,6 +15,7 @@ function App() {
       </main>
       <PlayerOverlay />
       <StickerPanel />
+      <div id="friends-panel" className="friends-panel"></div>
       <div id="del-zone">🗑 Suelta para eliminar</div>
       <div id="toast"></div>
       <div id="modal-root"></div>

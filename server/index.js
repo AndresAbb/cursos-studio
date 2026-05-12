@@ -1,12 +1,15 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const crypto = require('crypto');
 
-const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings } = require('./models');
+const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend } = require('./models');
 const { isAvailable: ytdlpAvailable, fetchPlaylist } = require('./ytdlp');
 const { isConfigured: spotifyConfigured, fetchItems: spotifyFetchItems } = require('./services/spotify');
 const { checkEmbed } = require('./services/embedCheck');
@@ -596,6 +599,206 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+// ════════════════════════════════════════════════
+// WEBSOCKET + HTTP SERVER
+// ════════════════════════════════════════════════
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+const wsClients = new Set();
+
+wss.on('connection', ws => {
+  wsClients.add(ws);
+  ws.on('close', () => wsClients.delete(ws));
+  ws.on('error', () => wsClients.delete(ws));
+  // Unknown messages are silently dropped
+  ws.on('message', () => {});
+});
+
+function wsBroadcast(data) {
+  const msg = JSON.stringify(data);
+  wsClients.forEach(ws => { if (ws.readyState === 1) ws.send(msg); });
+}
+
+// ════════════════════════════════════════════════
+// FRIENDS — RATE LIMIT STATE (in-memory, resets on restart)
+// ════════════════════════════════════════════════
+const PRESENCE_MS = 5 * 60 * 1000;   // 5 min between presence events per friend
+const POKE_MS     = 60 * 60 * 1000;  // 1 hr between pokes per friend
+const presenceSent = new Map();       // `out:${type}:${friendId}` → timestamp
+const presenceRecv = new Map();       // `in:${type}:${friendId}` → timestamp
+const pokeSent     = new Map();       // `poke:${friendId}` → timestamp
+
+function throttled(map, key, intervalMs) {
+  const last = map.get(key) || 0;
+  if (Date.now() - last < intervalMs) return true;
+  map.set(key, Date.now());
+  return false;
+}
+
+// ════════════════════════════════════════════════
+// FRIENDS — HELPERS
+// ════════════════════════════════════════════════
+const VALID_EVENTS = new Set(['friend.studying', 'progress.updated', 'exam.upcoming', 'poke.sent']);
+
+async function ensureUserId() {
+  let s = await Settings.findById('global');
+  if (!s) s = await Settings.create({ _id: 'global' });
+  if (!s.userId) { s.userId = crypto.randomUUID(); await s.save(); }
+  return s;
+}
+
+// ════════════════════════════════════════════════
+// FRIENDS — ROUTES
+// ════════════════════════════════════════════════
+
+// Own identity
+app.get('/api/friends/me', w(async (req, res) => {
+  const s = await ensureUserId();
+  res.json({ userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji });
+}));
+
+app.patch('/api/friends/me', w(async (req, res) => {
+  const allowed = ['displayName', 'avatarEmoji'];
+  const data = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
+  const s = await Settings.findByIdAndUpdate('global', data, { new: true, upsert: true });
+  res.json({ userId: s.userId, displayName: s.displayName, avatarEmoji: s.avatarEmoji });
+}));
+
+// List accepted friends
+app.get('/api/friends', w(async (req, res) => {
+  res.json(await Friend.find({ status: { $ne: 'blocked' } }).sort({ createdAt: -1 }).lean());
+}));
+
+// Generate invite link
+app.post('/api/friends/invite', w(async (req, res) => {
+  const s = await ensureUserId();
+  const inviteToken = crypto.randomBytes(16).toString('hex');
+  const pushToken   = crypto.randomBytes(16).toString('hex');
+  await Friend.create({ inviteToken, pushToken, status: 'pending' });
+  const host = `${req.protocol}://${req.get('host')}`;
+  const link = `${host}/?accept-friend=${inviteToken}` +
+               `&from=${encodeURIComponent(s.userId)}` +
+               `&name=${encodeURIComponent(s.displayName || 'Amigo')}` +
+               `&emoji=${encodeURIComponent(s.avatarEmoji || '🎓')}` +
+               `&url=${encodeURIComponent(host)}`;
+  res.json({ link });
+}));
+
+// Accept invite (called by the friend who opens the link)
+app.post('/api/friends/accept/:token', w(async (req, res) => {
+  const f = await Friend.findOne({ inviteToken: req.params.token, status: 'pending' });
+  if (!f) return res.status(404).json({ error: 'Invitación no válida o ya usada' });
+  const s = await ensureUserId();
+  f.friendId    = req.body.userId   || '';
+  f.friendName  = req.body.name     || 'Amigo';
+  f.friendEmoji = req.body.emoji    || '👤';
+  f.friendUrl   = req.body.url      || '';
+  f.status      = 'accepted';
+  f.inviteToken = '';  // consume token
+  await f.save();
+  // Return our identity + pushToken so the initiating instance can be configured
+  res.json({
+    ok: true,
+    pushToken: f.pushToken,
+    myUserId:  s.userId,
+    myName:    s.displayName,
+    myEmoji:   s.avatarEmoji,
+    myUrl:     `${req.protocol}://${req.get('host')}`,
+  });
+}));
+
+// Update per-friend settings (sharing toggles, mute, friendUrl)
+app.patch('/api/friends/:id', w(async (req, res) => {
+  const allowed = ['friendName','friendEmoji','friendUrl','shareStudying','shareProgress','shareExamUpcoming','mutePresence','mutePokes'];
+  const data = {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
+  res.json(await Friend.findByIdAndUpdate(req.params.id, data, { new: true }));
+}));
+
+// Remove friend
+app.delete('/api/friends/:id', w(async (req, res) => {
+  await Friend.findByIdAndDelete(req.params.id);
+  res.json({ ok: true });
+}));
+
+// Block friend (silently — no notification sent)
+app.post('/api/friends/:id/block', w(async (req, res) => {
+  res.json(await Friend.findByIdAndUpdate(req.params.id, { status: 'blocked' }, { new: true }));
+}));
+
+// Send a poke to a friend (rate-limited: 1/hr, excess silently dropped)
+app.post('/api/friends/:id/poke', w(async (req, res) => {
+  const f = await Friend.findById(req.params.id);
+  if (!f || f.status !== 'accepted') return res.json({ ok: true });
+  if (throttled(pokeSent, String(f._id), POKE_MS)) return res.json({ ok: true });
+
+  const s = await ensureUserId();
+  const { kind = 'emoji', content = '👋' } = req.body;
+
+  if (f.friendUrl) {
+    fetch(`${f.friendUrl}/api/friends/presence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pushToken: f.pushToken, type: 'poke.sent', payload: { kind, content, fromName: s.displayName, fromEmoji: s.avatarEmoji } }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => {});
+  }
+
+  // Local confirmation to sender
+  wsBroadcast({ type: 'poke.confirmed', friendId: String(f._id), friendName: f.friendName, friendEmoji: f.friendEmoji });
+  res.json({ ok: true });
+}));
+
+// Broadcast local presence event to all friends that have sharing enabled
+// Called by the frontend when the user takes an action
+app.post('/api/friends/broadcast', w(async (req, res) => {
+  const { type, payload = {} } = req.body;
+  if (!VALID_EVENTS.has(type) || type === 'poke.sent') return res.json({ ok: true });
+
+  const friends = await Friend.find({ status: 'accepted' });
+  const s = await ensureUserId();
+
+  for (const f of friends) {
+    if (type === 'friend.studying'  && !f.shareStudying)     continue;
+    if (type === 'progress.updated' && !f.shareProgress)     continue;
+    if (type === 'exam.upcoming'    && !f.shareExamUpcoming) continue;
+
+    const key = `out:${type}:${f._id}`;
+    if (throttled(presenceSent, key, PRESENCE_MS)) continue;
+
+    if (f.friendUrl) {
+      fetch(`${f.friendUrl}/api/friends/presence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pushToken: f.pushToken, type, payload: { ...payload, fromName: s.displayName, fromEmoji: s.avatarEmoji } }),
+        signal: AbortSignal.timeout(3000),
+      }).catch(() => {});
+    }
+  }
+
+  res.json({ ok: true });
+}));
+
+// Receive a presence event from a remote friend instance
+app.post('/api/friends/presence', w(async (req, res) => {
+  const { pushToken, type, payload = {} } = req.body;
+  if (!pushToken || !VALID_EVENTS.has(type)) return res.json({ ok: true });
+
+  const f = await Friend.findOne({ pushToken, status: 'accepted' });
+  if (!f) return res.json({ ok: true });
+
+  if (type === 'poke.sent' && f.mutePokes)    return res.json({ ok: true });
+  if (type !== 'poke.sent' && f.mutePresence) return res.json({ ok: true });
+
+  const mapKey = `in:${type}:${f._id}`;
+  const interval = type === 'poke.sent' ? POKE_MS : PRESENCE_MS;
+  if (throttled(presenceRecv, mapKey, interval)) return res.json({ ok: true });
+
+  wsBroadcast({ type, friendId: String(f._id), friendName: f.friendName, friendEmoji: f.friendEmoji, payload });
+  res.json({ ok: true });
+}));
+
+server.listen(PORT, () => {
   console.log(`\n📚  Cursos Studio corriendo en http://localhost:${PORT}\n`);
 });

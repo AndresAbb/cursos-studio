@@ -132,6 +132,32 @@ const SettingsSchema = new Schema({
   aiKeyMasked:{ type: String, default: '' },
   spotifyConfigured: { type: Boolean, default: false },
   ytdlpAvailable: { type: Boolean, default: false },
+  // Co-learning identity
+  userId:      { type: String, default: '' },
+  displayName: { type: String, default: 'Yo' },
+  avatarEmoji: { type: String, default: '🎓' },
+}, { timestamps: true });
+
+// ─── FRIEND CONNECTION ───────────────────────────
+const FriendSchema = new Schema({
+  // Token created when the invite link is generated; used to accept
+  inviteToken:  { type: String, default: '' },
+  // Token the friend must include when pushing presence events to us
+  pushToken:    { type: String, default: '' },
+  // Friend's identity (filled on accept)
+  friendId:     { type: String, default: '' },
+  friendName:   { type: String, default: 'Amigo' },
+  friendEmoji:  { type: String, default: '👤' },
+  // Friend's app URL (optional — enables cross-instance event push)
+  friendUrl:    { type: String, default: '' },
+  status: { type: String, enum: ['pending', 'accepted', 'blocked'], default: 'pending' },
+  // What WE share with this friend
+  shareStudying:     { type: Boolean, default: true },
+  shareProgress:     { type: Boolean, default: true },
+  shareExamUpcoming: { type: Boolean, default: true },
+  // How WE receive from this friend
+  mutePresence: { type: Boolean, default: false },
+  mutePokes:    { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = {
@@ -142,4 +168,5 @@ module.exports = {
   Exam:    mongoose.model('Exam', ExamSchema),
   ExternalCourse: mongoose.model('ExternalCourse', ExternalCourseSchema),
   Settings: mongoose.model('Settings', SettingsSchema),
+  Friend:  mongoose.model('Friend', FriendSchema),
 };
