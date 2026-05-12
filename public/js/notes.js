@@ -65,7 +65,7 @@ const Notes = {
       await this.autoSave();
       const r = await API.saveNoteToObsidian(this.currentModuleId);
       $('note-hint').textContent = `📓 ${r.relative}`;
-      toast('📓 Guardado en Obsidian: ' + r.relative);
+      toast('📓 Guardado en carpeta');
     } catch (err) { toast('❌ ' + err.message); }
   },
 
