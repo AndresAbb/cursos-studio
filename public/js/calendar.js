@@ -104,6 +104,8 @@ const GlobalCalendar = {
     $('home-view').style.display = 'none';
     $('course-view').style.display = 'none';
     $('global-cal-view').style.display = '';
+    const gv3 = $('graph-view'); if (gv3) gv3.style.display = 'none';
+    if (window.SkillGraph) SkillGraph.close();
     $('main').style.background = 'var(--bg)';
     applyDarkModeForBg(null);
     State.globalWeekOff = 0;

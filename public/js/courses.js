@@ -68,6 +68,8 @@ const Course = {
 
       $('home-view').style.display = 'none';
       $('global-cal-view').style.display = 'none';
+      const gv2 = $('graph-view'); if (gv2) gv2.style.display = 'none';
+      if (window.SkillGraph) SkillGraph.close();
       $('course-view').style.display = '';
       $('sticker-canvas').classList.add('active');
       $('cv-title').innerHTML = `${c.emoji} ${escapeHTML(c.title)}`;
@@ -89,6 +91,8 @@ const Course = {
     $('home-view').style.display = '';
     $('course-view').style.display = 'none';
     $('global-cal-view').style.display = 'none';
+    const gv = $('graph-view'); if (gv) gv.style.display = 'none';
+    if (window.SkillGraph) SkillGraph.close();
     $('sticker-canvas').classList.remove('active');
     $('stk-panel').classList.remove('open');
     $('main').style.background = 'var(--bg)';

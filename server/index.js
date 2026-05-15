@@ -10,7 +10,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const os     = require('os');
 
-const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend } = require('./models');
+const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend, Skill } = require('./models');
 const { isAvailable: ytdlpAvailable, fetchPlaylist } = require('./ytdlp');
 const { isConfigured: spotifyConfigured, fetchItems: spotifyFetchItems } = require('./services/spotify');
 const { checkEmbed } = require('./services/embedCheck');
@@ -605,6 +605,63 @@ app.get('/api/calendar/global', w(async (req, res) => {
     ExternalCourse.find().lean(),
   ]);
   res.json({ courses, modules, externals });
+}));
+
+// ════════════════════════════════════════════════
+// SKILLS (Graph)
+// ════════════════════════════════════════════════
+app.get('/api/skills', w(async (req, res) => {
+  res.json(await Skill.find().sort({ createdAt: 1 }).lean());
+}));
+
+app.post('/api/skills', w(async (req, res) => {
+  res.json(await Skill.create(req.body));
+}));
+
+app.patch('/api/skills/:id', w(async (req, res) => {
+  res.json(await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true }));
+}));
+
+app.delete('/api/skills/:id', w(async (req, res) => {
+  const id = req.params.id;
+  // Remove backreferences from peers
+  await Skill.updateMany(
+    { 'connections.skillId': id },
+    { $pull: { connections: { skillId: id } } }
+  );
+  await Skill.findByIdAndDelete(id);
+  res.json({ ok: true });
+}));
+
+// Toggle/create a symmetric connection between two skills
+app.post('/api/skills/:id/connect', w(async (req, res) => {
+  const a = req.params.id;
+  const b = req.body.skillId;
+  const strength = req.body.strength != null ? Number(req.body.strength) : 0.5;
+  if (!b || a === b) return res.status(400).json({ error: 'skillId requerido' });
+  const sA = await Skill.findById(a);
+  const sB = await Skill.findById(b);
+  if (!sA || !sB) return res.status(404).json({ error: 'No encontrado' });
+
+  const upsert = (skill, peerId) => {
+    const existing = skill.connections.find(c => String(c.skillId) === String(peerId));
+    if (existing) existing.strength = strength;
+    else skill.connections.push({ skillId: peerId, strength });
+  };
+  upsert(sA, b);
+  upsert(sB, a);
+  await sA.save();
+  await sB.save();
+  res.json({ ok: true });
+}));
+
+app.post('/api/skills/:id/disconnect', w(async (req, res) => {
+  const a = req.params.id;
+  const b = req.body.skillId;
+  if (!b) return res.status(400).json({ error: 'skillId requerido' });
+  await Skill.findByIdAndUpdate(a, { $pull: { connections: { skillId: b } } });
+  await Skill.findByIdAndUpdate(b, { $pull: { connections: { skillId: a } } });
+  res.json({ ok: true });
 }));
 
 // ════════════════════════════════════════════════
