@@ -24,9 +24,13 @@ const SkillGraph = {
     $('graph-view').style.display = '';
     $('main').style.background = 'var(--bg)';
     applyDarkModeForBg(null);
+
+    // Wait one frame so layout flushes before measuring canvas size.
+    await new Promise(r => requestAnimationFrame(r));
     this.resize();
     await this.load();
     if (this.layout !== 'free') this.applyLayoutPositions();
+    this.renderLegend();
     if (!this.raf) this.loop();
   },
 
@@ -305,8 +309,11 @@ const SkillGraph = {
     const canvas = $('graph-canvas');
     const stage  = $('graph-stage');
     if (!canvas || !stage) return;
-    canvas.width  = stage.clientWidth;
-    canvas.height = stage.clientHeight;
+    const w = stage.clientWidth  || 800;
+    const h = stage.clientHeight || 600;
+    // Avoid resetting drawing surface to 0 (would blank the canvas).
+    canvas.width  = Math.max(200, w);
+    canvas.height = Math.max(200, h);
     if (this.layout !== 'free') this.applyLayoutPositions();
   },
 
@@ -396,6 +403,8 @@ const SkillGraph = {
       <div><b>${total}</b> habilidades · <b>${active}</b> activas</div>
       <div class="hint">Clic en una habilidad para editarla. Arrastra para mover.</div>
     `;
+    const empty = $('graph-empty');
+    if (empty) empty.style.display = total === 0 ? 'flex' : 'none';
   },
 
   // ── Editor modal ────────────────────────────────

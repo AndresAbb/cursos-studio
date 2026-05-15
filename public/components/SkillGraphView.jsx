@@ -39,6 +39,14 @@ function SkillGraphView() {
       </p>
       <div className="graph-stage" id="graph-stage">
         <canvas id="graph-canvas"></canvas>
+        <div className="graph-empty" id="graph-empty" style={{ display: 'none' }}>
+          <div className="ge-icon">🕸</div>
+          <div>Aún no hay habilidades en el grafo</div>
+          <div className="ge-sub">
+            Crea tu primera con <b>＋ Habilidad</b>, asígnale ejes y vincúlala<br/>
+            a uno o varios cursos para verla brillar mientras la estudias.
+          </div>
+        </div>
         <div className="graph-legend" id="graph-legend"></div>
       </div>
     </section>
