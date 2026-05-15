@@ -1,0 +1,4 @@
+{
+  "_doc": "Feature flags for course-level features. Edit and restart the server to apply.",
+  "multiplayer": false
+}

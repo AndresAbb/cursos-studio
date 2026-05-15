@@ -22,6 +22,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cursos_studio';
 
+// ─── Local config files (read once at boot) ──────
+// courses.json — feature flags for course-level behaviour (e.g. multiplayer)
+// graph.json   — feature flags for the Skills Graph (e.g. include externals)
+function loadJsonConfig(name, defaults) {
+  const p = path.join(__dirname, '..', name);
+  try {
+    if (fs.existsSync(p)) return { ...defaults, ...JSON.parse(fs.readFileSync(p, 'utf8')) };
+  } catch (err) {
+    console.warn(`⚠ Could not parse ${name}:`, err.message);
+  }
+  return { ...defaults };
+}
+const coursesConfig = loadJsonConfig('courses.json', { multiplayer: false });
+const graphConfig   = loadJsonConfig('graph.json',   { includeExternalCourses: true });
+console.log('🎛  courses.json:', coursesConfig);
+console.log('🎛  graph.json:  ', graphConfig);
+
 // ─── Middleware ──────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
@@ -91,8 +108,20 @@ app.get('/api/health', w(async (req, res) => {
       openai:     aiConfigured('openai'),
       anthropic:  aiConfigured('anthropic'),
     },
+    features: {
+      multiplayer: !!coursesConfig.multiplayer,
+      graphIncludeExternalCourses: !!graphConfig.includeExternalCourses,
+    },
   });
 }));
+
+// Same flags, accessible without the full health roundtrip
+app.get('/api/config', (req, res) => {
+  res.json({
+    courses: coursesConfig,
+    graph:   graphConfig,
+  });
+});
 
 // ════════════════════════════════════════════════
 // SETTINGS (singleton)
@@ -129,8 +158,21 @@ app.get('/api/courses', w(async (req, res) => {
   })));
 }));
 
+function deriveFavicon(homepageUrl) {
+  if (!homepageUrl) return { favicon: '', domain: '' };
+  try {
+    const domain = new URL(homepageUrl).hostname;
+    return { favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`, domain };
+  } catch { return { favicon: '', domain: '' }; }
+}
+
 app.post('/api/courses', w(async (req, res) => {
-  const c = await Course.create(req.body);
+  const data = { ...req.body };
+  if (data.homepageUrl && !data.favicon) {
+    const { favicon } = deriveFavicon(data.homepageUrl);
+    if (favicon) data.favicon = favicon;
+  }
+  const c = await Course.create(data);
   res.json(c);
 }));
 
@@ -141,7 +183,13 @@ app.get('/api/courses/:id', w(async (req, res) => {
 }));
 
 app.patch('/api/courses/:id', w(async (req, res) => {
-  const c = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const data = { ...req.body };
+  // If user changed homepageUrl and didn't pass an explicit favicon, refresh it.
+  if (data.homepageUrl !== undefined && data.favicon === undefined) {
+    const { favicon } = deriveFavicon(data.homepageUrl);
+    data.favicon = favicon;
+  }
+  const c = await Course.findByIdAndUpdate(req.params.id, data, { new: true });
   res.json(c);
 }));
 
@@ -751,8 +799,14 @@ async function ensureUserId() {
 }
 
 // ════════════════════════════════════════════════
-// FRIENDS — ROUTES
+// FRIENDS — ROUTES (gated by courses.json: multiplayer)
 // ════════════════════════════════════════════════
+app.use('/api/friends', (req, res, next) => {
+  if (!coursesConfig.multiplayer) {
+    return res.status(403).json({ error: 'Multiplayer disabled in courses.json' });
+  }
+  next();
+});
 
 // Own identity + network info
 app.get('/api/friends/me', w(async (req, res) => {

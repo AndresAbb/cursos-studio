@@ -2,6 +2,7 @@
 // 2D canvas view of skill nodes + user-defined connections.
 const SkillGraph = {
   skills: [],
+  externals: [],           // Loaded from /api/externals when graph.json enables it
   layout: 'free',          // 'free' | 'axes' | 'force'
   axisX: 'careerValue',
   axisY: 'personalPull',
@@ -56,6 +57,16 @@ const SkillGraph = {
           State.courses = Array.isArray(c) ? c : [];
         } catch { State.courses = []; }
       }
+      // External courses — only when graph.json says so
+      if (State.features?.graphIncludeExternalCourses) {
+        try {
+          const ext = State.externals?.length ? State.externals : await API.listExternals();
+          this.externals = Array.isArray(ext) ? ext : [];
+          State.externals = this.externals;
+        } catch { this.externals = []; }
+      } else {
+        this.externals = [];
+      }
       // Assign initial positions to skills that still sit at (0,0)
       const canvas = $('graph-canvas');
       const W = canvas?.width  || 800;
@@ -69,8 +80,9 @@ const SkillGraph = {
         }
         // Defensive: ensure required nested fields exist for draw()
         if (!s.axes) s.axes = { careerValue: 0.5, personalPull: 0.5, technical: 0.5, difficulty: 0.5 };
-        if (!Array.isArray(s.connections)) s.connections = [];
-        if (!Array.isArray(s.courseIds))   s.courseIds = [];
+        if (!Array.isArray(s.connections))       s.connections = [];
+        if (!Array.isArray(s.courseIds))         s.courseIds = [];
+        if (!Array.isArray(s.externalCourseIds)) s.externalCourseIds = [];
       });
       this.applyLayoutPositions();
       this.renderLegend();
@@ -144,15 +156,26 @@ const SkillGraph = {
   // ── Helpers ──────────────────────────────────────
   skillById(id) { return this.skills.find(s => String(s._id) === String(id)); },
 
-  // A skill is "glowing" if any linked course has unfinished modules.
+  // A skill glows when any linked course has unfinished modules, OR
+  // any linked external course is currently active (start passed, not ended).
   isActive(skill) {
-    if (!skill.courseIds?.length) return false;
-    const ids = new Set(skill.courseIds.map(String));
-    return (State.courses || []).some(c => {
-      if (!ids.has(String(c._id))) return false;
+    const cIds = new Set((skill.courseIds || []).map(String));
+    const internal = (State.courses || []).some(c => {
+      if (!cIds.has(String(c._id))) return false;
       const tot = c.totalModules || 0;
       const done = c.doneModules || 0;
       return tot > 0 && done < tot;
+    });
+    if (internal) return true;
+
+    const eIds = new Set((skill.externalCourseIds || []).map(String));
+    if (!eIds.size) return false;
+    const now = Date.now();
+    return (this.externals || []).some(e => {
+      if (!eIds.has(String(e._id))) return false;
+      const start = e.startDate ? new Date(e.startDate).getTime() : 0;
+      const end   = e.endDate   ? new Date(e.endDate).getTime()   : Infinity;
+      return start <= now && now <= end;
     });
   },
 
@@ -435,7 +458,7 @@ const SkillGraph = {
     const title = isNew ? 'Nueva habilidad' : 'Editar habilidad';
     const data = s || { name: '', emoji: '✦', color: COLORS[0], knownLevel: 0.5,
       axes: { careerValue: 0.5, personalPull: 0.5, technical: 0.5, difficulty: 0.5 },
-      courseIds: [], connections: [] };
+      courseIds: [], externalCourseIds: [], connections: [] };
 
     const sliderRow = (label, key, val) => `
       <div class="form-row">
@@ -443,13 +466,30 @@ const SkillGraph = {
         <input type="range" id="sk-${key}" min="0" max="100" value="${Math.round(val*100)}">
       </div>`;
 
-    const courseChecks = (State.courses || []).map(c => `
+    const courseChecks = (State.courses || []).map(c => {
+      const fav = c.favicon ? `<img class="sk-fav" src="${c.favicon}" alt="">` : (c.emoji || '📚');
+      return `
       <label class="check-pill">
         <input type="checkbox" data-cid="${c._id}" class="sk-course"
           ${ (data.courseIds || []).map(String).includes(String(c._id)) ? 'checked' : '' }>
-        ${c.emoji} ${escapeHTML(c.title)}
-      </label>
-    `).join('') || '<span class="hint">No hay cursos creados.</span>';
+        ${fav} ${escapeHTML(c.title)}
+      </label>`;
+    }).join('') || '<span class="hint">No hay cursos creados.</span>';
+
+    const showExternals = !!State.features?.graphIncludeExternalCourses;
+    const externalsHTML = showExternals
+      ? (this.externals.length
+          ? this.externals.map(e => {
+              const fav = e.favicon ? `<img class="sk-fav" src="${e.favicon}" alt="">` : (e.emoji || '🌐');
+              return `
+              <label class="check-pill">
+                <input type="checkbox" data-eid="${e._id}" class="sk-external"
+                  ${ (data.externalCourseIds || []).map(String).includes(String(e._id)) ? 'checked' : '' }>
+                ${fav} ${escapeHTML(e.title)}
+              </label>`;
+            }).join('')
+          : '<span class="hint">No hay cursos externos.</span>')
+      : '';
 
     const otherSkills = this.skills.filter(x => !s || String(x._id) !== String(s._id));
     const connected = new Set((data.connections || []).map(c => String(c.skillId)));
@@ -493,6 +533,7 @@ const SkillGraph = {
       ${sliderRow('🔥 Dificultad', 'difficulty', data.axes.difficulty)}
       <h3 style="margin-top:14px">Cursos vinculados</h3>
       <div class="check-pills">${courseChecks}</div>
+      ${showExternals ? `<h3 style="margin-top:14px">Cursos externos</h3><div class="check-pills">${externalsHTML}</div>` : ''}
       <h3 style="margin-top:14px">Conexiones con otras habilidades</h3>
       <div class="check-pills">${connRows}</div>
     `;
@@ -516,7 +557,8 @@ const SkillGraph = {
           technical:    (+$val('sk-technical')    || 0) / 100,
           difficulty:   (+$val('sk-difficulty')   || 0) / 100,
         },
-        courseIds: [...document.querySelectorAll('.sk-course:checked')].map(el => el.dataset.cid),
+        courseIds:         [...document.querySelectorAll('.sk-course:checked')].map(el => el.dataset.cid),
+        externalCourseIds: [...document.querySelectorAll('.sk-external:checked')].map(el => el.dataset.eid),
       };
 
       // Save skill itself first

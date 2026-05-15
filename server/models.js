@@ -63,6 +63,8 @@ const CourseSchema = new Schema({
   emoji:       { type: String, default: '📚' },
   color:       { type: String, default: '#c8622a' },
   description: { type: String, default: '' },
+  favicon:     { type: String, default: '' },
+  homepageUrl: { type: String, default: '' },
   startDate:   { type: Date, default: Date.now },
   background: {
     type:  { type: String, enum: ['color','image','preset'], default: 'color' },
@@ -178,7 +180,8 @@ const SkillSchema = new Schema({
   },
   x: { type: Number, default: 0 },
   y: { type: Number, default: 0 },
-  courseIds:   [{ type: Schema.Types.ObjectId, ref: 'Course' }],
+  courseIds:         [{ type: Schema.Types.ObjectId, ref: 'Course' }],
+  externalCourseIds: [{ type: Schema.Types.ObjectId, ref: 'ExternalCourse' }],
   connections: [{
     skillId:  { type: Schema.Types.ObjectId, ref: 'Skill' },
     strength: { type: Number, default: 0.5 },
