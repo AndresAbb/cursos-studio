@@ -78,6 +78,14 @@ const API = {
   // Global calendar
   globalCalendar() { return this.req('/api/calendar/global'); },
 
+  // Skills (Graph)
+  listSkills()                       { return this.req('/api/skills'); },
+  createSkill(data)                  { return this.req('/api/skills', { method: 'POST', body: JSON.stringify(data) }); },
+  updateSkill(id, data)              { return this.req(`/api/skills/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
+  deleteSkill(id)                    { return this.req(`/api/skills/${id}`, { method: 'DELETE' }); },
+  connectSkill(id, skillId, strength){ return this.req(`/api/skills/${id}/connect`, { method: 'POST', body: JSON.stringify({ skillId, strength }) }); },
+  disconnectSkill(id, skillId)       { return this.req(`/api/skills/${id}/disconnect`, { method: 'POST', body: JSON.stringify({ skillId }) }); },
+
   // Upload
   async upload(file) {
     const fd = new FormData();

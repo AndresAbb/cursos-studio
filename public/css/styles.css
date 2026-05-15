@@ -887,3 +887,59 @@ body {
   border-color: rgba(255,253,247,.2);
 }
 .dark-bg .fr-friend-item { background: rgba(255,253,247,.05); }
+
+/* ── Skill Graph ────────────────────────────────── */
+#graph-view { display: flex; flex-direction: column; height: 100%; }
+.graph-stage {
+  position: relative;
+  flex: 1;
+  min-height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0a0a18;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+#graph-canvas { display: block; width: 100%; height: 100%; }
+.graph-legend {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  pointer-events: none;
+  background: rgba(0,0,0,0.35);
+  padding: 8px 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+.graph-legend .hint { color: rgba(255,255,255,0.45); }
+.graph-toolbar .select-sm,
+select.select-sm {
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.check-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.check-pill input[type="checkbox"] { margin-right: 4px; }
+.check-pill input[type="range"] { vertical-align: middle; }
+

@@ -12,6 +12,7 @@ function App() {
         <HomeView />
         <CourseView />
         <GlobalCalendarView />
+        <SkillGraphView />
       </main>
       <PlayerOverlay />
       <StickerPanel />

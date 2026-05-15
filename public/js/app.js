@@ -25,6 +25,7 @@ window.appBoot = async () => {
   Player.init();
   Calendar.init();
   GlobalCalendar.init();
+  SkillGraph.init();
   Course.init();
   Externals.init();
   await Exams.init();   // async: loads exam_templates.json before any UI

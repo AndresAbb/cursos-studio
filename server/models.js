@@ -162,6 +162,29 @@ const FriendSchema = new Schema({
   mutePokes:    { type: Boolean, default: false },
 }, { timestamps: true });
 
+// ─── SKILL ───────────────────────────────────────
+// 2D graph node. Connections are stored on each side as a denormalized
+// list of peer skillIds + strength. UI keeps them in sync.
+const SkillSchema = new Schema({
+  name:       { type: String, required: true },
+  color:      { type: String, default: '#7c5ce0' },
+  emoji:      { type: String, default: '✦' },
+  knownLevel: { type: Number, default: 0.5 },   // 0..1 → orb size
+  axes: {
+    careerValue:  { type: Number, default: 0.5 },
+    personalPull: { type: Number, default: 0.5 },
+    technical:    { type: Number, default: 0.5 },
+    difficulty:   { type: Number, default: 0.5 },
+  },
+  x: { type: Number, default: 0 },
+  y: { type: Number, default: 0 },
+  courseIds:   [{ type: Schema.Types.ObjectId, ref: 'Course' }],
+  connections: [{
+    skillId:  { type: Schema.Types.ObjectId, ref: 'Skill' },
+    strength: { type: Number, default: 0.5 },
+  }],
+}, { timestamps: true });
+
 module.exports = {
   Course:  mongoose.model('Course', CourseSchema),
   Module:  mongoose.model('Module', ModuleSchema),
@@ -171,4 +194,5 @@ module.exports = {
   ExternalCourse: mongoose.model('ExternalCourse', ExternalCourseSchema),
   Settings: mongoose.model('Settings', SettingsSchema),
   Friend:  mongoose.model('Friend', FriendSchema),
+  Skill:   mongoose.model('Skill', SkillSchema),
 };
