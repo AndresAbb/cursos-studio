@@ -10,7 +10,19 @@ function HomeView() {
         <button className="btn btn-outline" id="hero-cta-external">🌐 Curso externo</button>
       </div>
       <h3 className="section-title">Mis cursos</h3>
+      <p className="hint" id="courses-reorder-hint" style={{ marginTop: '-8px', marginBottom: '8px', display: 'none' }}>
+        Arrastra una tarjeta para reordenarla.
+      </p>
       <div className="courses-grid" id="courses-grid"></div>
+
+      <details id="archived-details" className="archived-details" style={{ display: 'none' }}>
+        <summary className="section-title archived-summary">
+          <span>Archivados</span>
+          <span className="archived-count" id="archived-count"></span>
+        </summary>
+        <div className="courses-grid archived-grid" id="archived-grid"></div>
+      </details>
+
       <h3 className="section-title">Externos</h3>
       <div className="courses-grid" id="externals-grid"></div>
     </section>

@@ -71,6 +71,9 @@ const CourseSchema = new Schema({
     value: { type: String, default: '#f5f0e8' },
   },
   totalSeconds: { type: Number, default: 0 },
+  status: { type: String, enum: ['active','finished','cancelled'], default: 'active', index: true },
+  statusChangedAt: { type: Date, default: null },
+  order: { type: Number, default: 0, index: true },
   grades: [{
     moduleId: { type: Schema.Types.ObjectId, ref: 'Module' },
     moduleTitle: String,
