@@ -41,9 +41,22 @@ const SkillGraph = {
 
   async load() {
     try {
-      this.skills = await API.listSkills();
-      if (!State.courses?.length) State.courses = await API.listCourses();
-      // Assign initial positions to new skills
+      const raw = await API.listSkills();
+      // Server returns the SPA HTML when /api/skills isn't registered yet
+      // (e.g., dev server still on the old build). Coerce & warn.
+      if (!Array.isArray(raw)) {
+        this.skills = [];
+        toast('⚠ /api/skills no responde JSON. ¿Reiniciaste el servidor?', 5000);
+      } else {
+        this.skills = raw;
+      }
+      if (!Array.isArray(State.courses) || !State.courses.length) {
+        try {
+          const c = await API.listCourses();
+          State.courses = Array.isArray(c) ? c : [];
+        } catch { State.courses = []; }
+      }
+      // Assign initial positions to skills that still sit at (0,0)
       const canvas = $('graph-canvas');
       const W = canvas?.width  || 800;
       const H = canvas?.height || 600;
@@ -54,10 +67,18 @@ const SkillGraph = {
           s.x = W / 2 + Math.cos(angle) * r;
           s.y = H / 2 + Math.sin(angle) * r;
         }
+        // Defensive: ensure required nested fields exist for draw()
+        if (!s.axes) s.axes = { careerValue: 0.5, personalPull: 0.5, technical: 0.5, difficulty: 0.5 };
+        if (!Array.isArray(s.connections)) s.connections = [];
+        if (!Array.isArray(s.courseIds))   s.courseIds = [];
       });
       this.applyLayoutPositions();
       this.renderLegend();
-    } catch (err) { toast('❌ ' + err.message); }
+    } catch (err) {
+      this.skills = [];
+      toast('❌ ' + err.message);
+      this.renderLegend();
+    }
   },
 
   // ── Layout ───────────────────────────────────────

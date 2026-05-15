@@ -4,7 +4,10 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "PowerShell($env:PATH += ';C:\\\\Program Files\\\\GitHub CLI;C:\\\\Program Files \\(x86\\)\\\\GitHub CLI'; Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\",\"C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\",\"$env:LOCALAPPDATA\\\\GitHubCLI\" -ErrorAction SilentlyContinue | Select-Object FullName; where.exe gh 2>$null)"
     ]
   }
 }
