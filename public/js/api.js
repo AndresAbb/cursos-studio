@@ -21,8 +21,9 @@ const API = {
   authStatus() { return this.req('/api/auth/status'); },
   logout()     { return this.req('/api/logout', { method: 'POST' }); },
 
-  // Health
-  health() { return this.req('/api/health'); },
+  // Health & config
+  health()  { return this.req('/api/health'); },
+  config()  { return this.req('/api/config'); },
 
   // Settings
   getSettings()        { return this.req('/api/settings'); },

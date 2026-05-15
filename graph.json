@@ -1,0 +1,4 @@
+{
+  "_doc": "Feature flags for the Skills Graph. Edit and restart the server to apply.",
+  "includeExternalCourses": true
+}

@@ -1,6 +1,7 @@
 const Course = {
   curMtype: 'youtube',
   bulkDayPicker: null,
+  recurDayPicker: null,
 
   async loadList() {
     try {
@@ -13,12 +14,16 @@ const Course = {
   },
 
   renderSidebar() {
-    $('sb-courses').innerHTML = State.courses.map(c => `
+    $('sb-courses').innerHTML = State.courses.map(c => {
+      const lead = c.favicon
+        ? `<img class="sb-fav" src="${c.favicon}" alt="">`
+        : `<div class="sb-dot" style="background:${c.color}"></div>`;
+      return `
       <div class="sb-item ${State.cur?._id === c._id ? 'active' : ''}" data-id="${c._id}">
-        <div class="sb-dot" style="background:${c.color}"></div>
-        ${c.emoji} ${escapeHTML(c.title)}
-      </div>
-    `).join('');
+        ${lead}
+        ${c.favicon ? '' : c.emoji} ${escapeHTML(c.title)}
+      </div>`;
+    }).join('');
     $('sb-courses').querySelectorAll('.sb-item').forEach(el => {
       el.addEventListener('click', () => this.open(el.dataset.id));
     });
@@ -44,8 +49,11 @@ const Course = {
       const tot  = c.totalModules || 0;
       const done = c.doneModules  || 0;
       const pct  = tot ? Math.round(done / tot * 100) : 0;
+      const header = c.favicon
+        ? `<img class="cc-fav" src="${c.favicon}" alt="">`
+        : (c.emoji || '📚');
       return `<div class="course-card" data-id="${c._id}">
-        <div class="cc-header" style="background:${c.color}18">${c.emoji}</div>
+        <div class="cc-header" style="background:${c.color}18">${header}</div>
         <div class="cc-body">
           <div class="cc-title">${escapeHTML(c.title)}</div>
           <div class="cc-meta">${tot} módulos · ${pct}% · ⏱ ${fmtTime(c.totalSeconds || 0)}</div>
@@ -469,6 +477,10 @@ const Course = {
       <div class="fg"><label>Emoji</label><input id="nc-e" placeholder="🎯" style="width:90px"></div>
       <div class="fg"><label>Descripción</label><textarea id="nc-d" rows="2"></textarea></div>
       <div class="fg"><label>Color</label><div class="swatch-row" id="nc-cr"></div></div>
+      <div class="fg">
+        <label>Página oficial (opcional, para favicon)</label>
+        <input id="nc-url" placeholder="https://platform.example.com">
+      </div>
       <div class="fg"><label>Fecha de inicio</label><input type="date" id="nc-dt" value="${new Date().toISOString().split('T')[0]}"></div>
     `, async () => {
       const title = $val('nc-t').trim();
@@ -476,6 +488,7 @@ const Course = {
       const c = await API.createCourse({
         title, emoji: $val('nc-e') || '📚', description: $val('nc-d'),
         color: selColor, startDate: $val('nc-dt') || new Date(),
+        homepageUrl: $val('nc-url').trim(),
         background: { type: 'color', value: '#f5f0e8' },
       });
       toast('✅ Creado');
@@ -494,6 +507,10 @@ const Course = {
       <div class="fg"><label>Emoji</label><input id="st-e" value="${State.cur.emoji}" style="width:90px"></div>
       <div class="fg"><label>Color</label><div class="swatch-row" id="st-cr"></div></div>
       <div class="fg"><label>Descripción</label><textarea id="st-d" rows="2">${escapeHTML(State.cur.description || '')}</textarea></div>
+      <div class="fg">
+        <label>Página oficial (opcional, para favicon)</label>
+        <input id="st-url" value="${escapeHTML(State.cur.homepageUrl || '')}" placeholder="https://platform.example.com">
+      </div>
       <div class="fg"><label>Fecha de inicio</label><input type="date" id="st-dt" value="${new Date(State.cur.startDate).toISOString().split('T')[0]}"></div>
       <div style="margin-top:12px">
         <button type="button" class="btn btn-outline btn-sm" id="st-edit-syllabus">📋 Editar secciones del sílabo (${(State.cur.syllabusLabels||[]).length})</button>
@@ -504,6 +521,7 @@ const Course = {
         emoji:       $val('st-e') || State.cur.emoji,
         color:       selColor,
         description: $val('st-d'),
+        homepageUrl: $val('st-url').trim(),
         startDate:   $val('st-dt'),
       });
       State.cur = updated;
@@ -611,10 +629,64 @@ const Course = {
     this.renderMtypeForm(preDay, preWeek);
   },
 
+  recurrenceBlockHTML() {
+    return `
+      <div class="recur-block">
+        <label class="recur-toggle">
+          <input type="checkbox" id="mod-recur"> Repetir en varios días / semanas
+        </label>
+        <div id="mod-recur-fields" style="display:none;margin-top:8px">
+          <label>Días recurrentes</label>
+          <div class="day-picker" id="mod-recur-days"></div>
+          <div class="row-2" style="margin-top:8px">
+            <div class="fg">
+              <label>Durante (semanas)</label>
+              <input type="number" id="mod-recur-weeks" value="4" min="1" max="52">
+            </div>
+            <div class="fg" style="display:flex;align-items:end">
+              <span class="hint" id="mod-recur-summary"></span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  },
+
+  wireRecurrence(preDay) {
+    const cb     = $('mod-recur');
+    const fields = $('mod-recur-fields');
+    if (!cb || !fields) return;
+    cb.addEventListener('change', () => {
+      fields.style.display = cb.checked ? 'block' : 'none';
+      if (cb.checked && !this.recurDayPicker) {
+        this.recurDayPicker = buildDayPicker('mod-recur-days', [preDay]);
+        // Update summary whenever a day pill toggles
+        $('mod-recur-days')?.addEventListener('click', e => {
+          if (e.target.classList?.contains('day-pill')) {
+            // The pill's click handler in buildDayPicker runs first; let it
+            // update internal state before we read it.
+            setTimeout(() => this.updateRecurSummary(), 0);
+          }
+        });
+      }
+      this.updateRecurSummary();
+    });
+    $('mod-recur-weeks')?.addEventListener('input', () => this.updateRecurSummary());
+  },
+
+  updateRecurSummary() {
+    const el = $('mod-recur-summary');
+    if (!el || !this.recurDayPicker) return;
+    const days = this.recurDayPicker();
+    const wks  = Math.max(1, parseInt($val('mod-recur-weeks')) || 0);
+    const tot  = days.length * wks;
+    el.textContent = `${tot} módulo${tot === 1 ? '' : 's'} (${days.length} día/s × ${wks} sem)`;
+  },
+
   renderMtypeForm(preDay, preWeek) {
     const dayOpts = DAYS_FULL.map((d, i) => `<option value="${i}" ${i === preDay ? 'selected' : ''}>${d}</option>`).join('');
     const weekUI  = preWeek + 1;
     let html = '';
+    this.recurDayPicker = null;
 
     if (['youtube','spotify','web'].includes(this.curMtype)) {
       const ph = {
@@ -629,6 +701,7 @@ const Course = {
           <div class="fg"><label>Día</label><select id="mod-day">${dayOpts}</select></div>
           <div class="fg"><label>Semana</label><input type="number" id="mod-week" value="${weekUI}" min="1" max="52"></div>
         </div>
+        ${this.recurrenceBlockHTML()}
         ${this.curMtype === 'web' ? '<p class="hint">Si el sitio no permite embed, se guarda automáticamente como link con favicon.</p>' : ''}`;
     } else if (this.curMtype === 'text') {
       html = `
@@ -637,7 +710,8 @@ const Course = {
         <div class="row-2">
           <div class="fg"><label>Día</label><select id="mod-day">${dayOpts}</select></div>
           <div class="fg"><label>Semana</label><input type="number" id="mod-week" value="${weekUI}" min="1" max="52"></div>
-        </div>`;
+        </div>
+        ${this.recurrenceBlockHTML()}`;
     } else if (this.curMtype === 'ai-exam') {
       html = `
         <div class="fg"><label>Título del examen</label><input id="mod-title" placeholder="Examen 1: Fundamentos"></div>
@@ -645,7 +719,8 @@ const Course = {
         <div class="row-2">
           <div class="fg"><label>Día</label><select id="mod-day">${dayOpts}</select></div>
           <div class="fg"><label>Semana</label><input type="number" id="mod-week" value="${weekUI}" min="1" max="52"></div>
-        </div>`;
+        </div>
+        ${this.recurrenceBlockHTML()}`;
     } else if (this.curMtype === 'bulk') {
       const cap    = State.capabilities;
       const ytSt   = cap.ytdlp   ? '<span class="status-pill ok">yt-dlp ✓</span>'   : '<span class="status-pill no">yt-dlp ✗</span>';
@@ -688,6 +763,8 @@ const Course = {
     $('mtype-form').innerHTML = html;
     if (this.curMtype === 'bulk') {
       this.bulkDayPicker = buildDayPicker('bulk-days', [preDay]);
+    } else {
+      this.wireRecurrence(preDay);
     }
   },
 
@@ -696,29 +773,54 @@ const Course = {
     const title = $val('mod-title').trim();
     if (!title) { toast('Falta título'); return false; }
 
-    const data = {
+    const base = {
       title,
-      type:      this.curMtype,
-      dayOfWeek: parseInt($val('mod-day') || '0'),
-      week:      parseInt($val('mod-week') || '1') - 1,
+      type: this.curMtype,
     };
 
     if (this.curMtype === 'text') {
-      data.textContent = $val('mod-text');
+      base.textContent = $val('mod-text');
     } else if (this.curMtype === 'ai-exam') {
-      data.examConfig = Exams.readNewForm();
-      data.url = '';
-      if (!data.examConfig.prompt) { toast('Falta el prompt del examen'); return false; }
+      base.examConfig = Exams.readNewForm();
+      base.url = '';
+      if (!base.examConfig.prompt) { toast('Falta el prompt del examen'); return false; }
     } else {
       const url = $val('mod-url').trim();
       if (!url) { toast('Falta URL'); return false; }
-      data.url = url;
+      base.url = url;
+    }
+
+    // Build the list of (week, dayOfWeek) slots: either single or recurring.
+    const recurOn = $checked('mod-recur') && this.recurDayPicker;
+    let slots;
+    if (recurOn) {
+      const days = this.recurDayPicker();
+      if (!days.length) { toast('Elige al menos un día para repetir'); return false; }
+      const weeks    = Math.max(1, parseInt($val('mod-recur-weeks')) || 1);
+      const startWk  = parseInt($val('mod-week') || '1') - 1;
+      slots = [];
+      for (let w = 0; w < weeks; w++) for (const d of days) {
+        slots.push({ week: startWk + w, dayOfWeek: d });
+      }
+    } else {
+      slots = [{
+        week:      parseInt($val('mod-week') || '1') - 1,
+        dayOfWeek: parseInt($val('mod-day')  || '0'),
+      }];
     }
 
     try {
-      const m = await API.createModule(State.cur._id, data);
-      State.curModules.push(m);
-      toast(m.type === 'web-link' ? '🔗 Sitio no embebible — guardado como link' : '✅ Agregado');
+      if (slots.length > 1) toast(`⏳ Creando ${slots.length} módulos…`, 4000);
+      const created = await Promise.all(
+        slots.map(slot => API.createModule(State.cur._id, { ...base, ...slot }))
+      );
+      State.curModules.push(...created);
+      const anyLink = created.some(m => m.type === 'web-link');
+      toast(
+        slots.length === 1
+          ? (anyLink ? '🔗 Sitio no embebible — guardado como link' : '✅ Agregado')
+          : `✅ ${created.length} módulos creados`
+      );
       Calendar.render();
       if (State.view === 'mod') this.renderModules();
       this.loadList();

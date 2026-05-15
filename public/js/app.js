@@ -16,8 +16,21 @@ window.appBoot = async () => {
     $('db-status').classList.add('error');
   }
 
-  // 2. Settings
+  // 2. Settings + feature flags (courses.json, graph.json)
   try { State.settings = await API.getSettings(); } catch {}
+  try {
+    const cfg = await API.config();
+    State.features = {
+      multiplayer:                  !!cfg.courses?.multiplayer,
+      graphIncludeExternalCourses:  !!cfg.graph?.includeExternalCourses,
+    };
+  } catch { State.features = { multiplayer: false, graphIncludeExternalCourses: false }; }
+
+  // Hide multiplayer UI entirely when disabled in courses.json
+  if (!State.features.multiplayer) {
+    const btn = document.getElementById('btn-friends');     if (btn) btn.style.display = 'none';
+    const pnl = document.getElementById('friends-panel');   if (pnl) pnl.style.display = 'none';
+  }
 
   // 3. Init modules
   Stickers.initPanel();
@@ -30,7 +43,9 @@ window.appBoot = async () => {
   Externals.init();
   await Exams.init();   // async: loads exam_templates.json before any UI
   Settings.init();
-  await Friends.init();
+  if (State.features?.multiplayer) {
+    await Friends.init();
+  }
 
   // 4. Wire final exam button (rendered on grades view)
   document.addEventListener('click', e => {
