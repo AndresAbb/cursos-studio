@@ -35,6 +35,8 @@ const API = {
   createCourse(data)        { return this.req('/api/courses', { method: 'POST', body: JSON.stringify(data) }); },
   updateCourse(id, data)    { return this.req(`/api/courses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
   deleteCourse(id)          { return this.req(`/api/courses/${id}`, { method: 'DELETE' }); },
+  reorderCourses(orderedIds){ return this.req('/api/courses/reorder', { method: 'POST', body: JSON.stringify({ orderedIds }) }); },
+  setCourseStatus(id, status){ return this.req(`/api/courses/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }); },
   getGrades(courseId)       { return this.req(`/api/courses/${courseId}/grades`); },
 
   // Exam prompt generation

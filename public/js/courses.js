@@ -14,12 +14,14 @@ const Course = {
   },
 
   renderSidebar() {
-    $('sb-courses').innerHTML = State.courses.map(c => {
+    const sidebarCourses = State.courses.filter(c => this.isActiveCourse(c) || State.cur?._id === c._id);
+    $('sb-courses').innerHTML = sidebarCourses.map(c => {
       const lead = c.favicon
         ? `<img class="sb-fav" src="${c.favicon}" alt="">`
         : `<div class="sb-dot" style="background:${c.color}"></div>`;
+      const archCls = this.isActiveCourse(c) ? '' : ' archived';
       return `
-      <div class="sb-item ${State.cur?._id === c._id ? 'active' : ''}" data-id="${c._id}">
+      <div class="sb-item ${State.cur?._id === c._id ? 'active' : ''}${archCls}" data-id="${c._id}">
         ${lead}
         ${c.favicon ? '' : c.emoji} ${escapeHTML(c.title)}
       </div>`;
@@ -39,30 +41,113 @@ const Course = {
     });
   },
 
+  // status defaults to 'active' for legacy records that never had the field.
+  isActiveCourse(c) { return (c.status || 'active') === 'active'; },
+
+  courseCardHTML(c, opts = {}) {
+    const tot  = c.totalModules || 0;
+    const done = c.doneModules  || 0;
+    const pct  = tot ? Math.round(done / tot * 100) : 0;
+    const header = c.favicon
+      ? `<img class="cc-fav" src="${c.favicon}" alt="">`
+      : (c.emoji || '📚');
+    const status = c.status || 'active';
+    const badge = status === 'finished'  ? '<span class="cc-badge cc-finished">✓ Terminado</span>'
+                : status === 'cancelled' ? '<span class="cc-badge cc-cancelled">✕ Cancelado</span>'
+                : '';
+    const handle = opts.draggable ? '<div class="cc-handle" title="Arrastrar para reordenar">⋮⋮</div>' : '';
+    const cls    = `course-card${opts.archived ? ' archived' : ''}`;
+    return `<div class="${cls}" data-id="${c._id}" ${opts.draggable ? 'draggable="true"' : ''}>
+      ${handle}
+      <div class="cc-header" style="background:${c.color}18">${header}${badge}</div>
+      <div class="cc-body">
+        <div class="cc-title">${escapeHTML(c.title)}</div>
+        <div class="cc-meta">${tot} módulos · ${pct}% · ⏱ ${fmtTime(c.totalSeconds || 0)}</div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${c.color}"></div></div>
+      </div>
+    </div>`;
+  },
+
   renderCards() {
+    const active   = State.courses.filter(c => this.isActiveCourse(c));
+    const archived = State.courses.filter(c => !this.isActiveCourse(c));
+
+    // Active grid (drag-and-drop reorderable)
     const el = $('courses-grid');
-    if (!State.courses.length) {
-      el.innerHTML = `<div class="empty-state"><div class="icon">📚</div>Aún no hay cursos.</div>`;
-      return;
+    if (!active.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📚</div>Aún no hay cursos activos.</div>`;
+    } else {
+      el.innerHTML = active.map(c => this.courseCardHTML(c, { draggable: true })).join('');
     }
-    el.innerHTML = State.courses.map(c => {
-      const tot  = c.totalModules || 0;
-      const done = c.doneModules  || 0;
-      const pct  = tot ? Math.round(done / tot * 100) : 0;
-      const header = c.favicon
-        ? `<img class="cc-fav" src="${c.favicon}" alt="">`
-        : (c.emoji || '📚');
-      return `<div class="course-card" data-id="${c._id}">
-        <div class="cc-header" style="background:${c.color}18">${header}</div>
-        <div class="cc-body">
-          <div class="cc-title">${escapeHTML(c.title)}</div>
-          <div class="cc-meta">${tot} módulos · ${pct}% · ⏱ ${fmtTime(c.totalSeconds || 0)}</div>
-          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${c.color}"></div></div>
-        </div>
-      </div>`;
-    }).join('');
-    el.querySelectorAll('.course-card').forEach(card => {
-      card.addEventListener('click', () => this.open(card.dataset.id));
+    const hint = $('courses-reorder-hint');
+    if (hint) hint.style.display = active.length > 1 ? '' : 'none';
+
+    // Archived grid (collapsible)
+    const arch = $('archived-grid');
+    const det  = $('archived-details');
+    const cnt  = $('archived-count');
+    if (det) det.style.display = archived.length ? '' : 'none';
+    if (cnt) cnt.textContent  = archived.length ? ` (${archived.length})` : '';
+    if (arch) arch.innerHTML  = archived.map(c => this.courseCardHTML(c, { archived: true })).join('');
+
+    // Click to open — works for both grids
+    [...el.querySelectorAll('.course-card'), ...(arch ? arch.querySelectorAll('.course-card') : [])]
+      .forEach(card => {
+        card.addEventListener('click', e => {
+          // Avoid opening when the user clicked the drag handle
+          if (e.target.classList.contains('cc-handle')) return;
+          this.open(card.dataset.id);
+        });
+      });
+
+    this.wireReorder();
+  },
+
+  // ── Drag-and-drop reordering of active courses ─
+  wireReorder() {
+    const grid = $('courses-grid');
+    if (!grid) return;
+    let dragId = null;
+
+    grid.querySelectorAll('.course-card[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', e => {
+        dragId = card.dataset.id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', dragId); } catch {}
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        grid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        dragId = null;
+      });
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!dragId || dragId === card.dataset.id) return;
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', async e => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        const fromId = dragId;
+        const toId   = card.dataset.id;
+        if (!fromId || fromId === toId) return;
+
+        // Reorder in-place: move active list, persist new order
+        const active = State.courses.filter(c => this.isActiveCourse(c));
+        const rest   = State.courses.filter(c => !this.isActiveCourse(c));
+        const fromI  = active.findIndex(c => c._id === fromId);
+        const toI    = active.findIndex(c => c._id === toId);
+        if (fromI < 0 || toI < 0) return;
+        const [moved] = active.splice(fromI, 1);
+        active.splice(toI, 0, moved);
+        State.courses = [...active, ...rest];
+        this.renderCards();
+        try {
+          await API.reorderCourses(active.map(c => c._id));
+        } catch (err) { toast('❌ ' + err.message); }
+      });
     });
   },
 
@@ -530,11 +615,34 @@ const Course = {
       Calendar.render();
       toast('✅ Guardado');
     }, {
-      extraButtons: '<button class="btn btn-danger" id="btn-del-course" style="width:auto;margin-right:auto">🗑 Eliminar curso</button>',
+      extraButtons: `
+        <div class="course-status-row">
+          ${this.isActiveCourse(State.cur)
+            ? `<button class="btn btn-outline btn-sm" id="btn-finish-course"  title="Marca el curso como terminado">✓ Terminar</button>
+               <button class="btn btn-outline btn-sm" id="btn-cancel-course"  title="Marca el curso como cancelado">✕ Cancelar</button>`
+            : `<button class="btn btn-outline btn-sm" id="btn-reactivate-course" title="Devuelve el curso a activos">↻ Reactivar</button>`
+          }
+          <button class="btn btn-danger btn-sm" id="btn-del-course" title="Eliminar permanentemente">🗑 Eliminar</button>
+        </div>`,
     });
     buildSwatches('st-cr', COLORS, selColor, c => selColor = c);
+
+    const setStatus = async (status, label) => {
+      try {
+        const c = await API.setCourseStatus(State.cur._id, status);
+        State.cur = c;
+        toast(label);
+        closeModal();
+        await this.loadList();
+        if (status === 'active') this.open(c._id);
+        else                     this.showHome();
+      } catch (err) { toast('❌ ' + err.message); }
+    };
+    document.getElementById('btn-finish-course')?.addEventListener('click', () => setStatus('finished',  '✓ Curso terminado'));
+    document.getElementById('btn-cancel-course')?.addEventListener('click', () => setStatus('cancelled', '✕ Curso cancelado'));
+    document.getElementById('btn-reactivate-course')?.addEventListener('click', () => setStatus('active', '↻ Reactivado'));
     document.getElementById('btn-del-course')?.addEventListener('click', async () => {
-      if (!confirm(`¿Eliminar "${State.cur.title}"?`)) return;
+      if (!confirm(`¿Eliminar "${State.cur.title}"? Esta acción no se puede deshacer.`)) return;
       try { await API.deleteCourse(State.cur._id); toast('Eliminado'); closeModal(); this.showHome(); }
       catch (err) { toast('❌ ' + err.message); }
     });

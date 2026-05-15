@@ -144,7 +144,8 @@ app.put('/api/settings', w(async (req, res) => {
 // COURSES
 // ════════════════════════════════════════════════
 app.get('/api/courses', w(async (req, res) => {
-  const courses = await Course.find().sort({ createdAt: -1 }).lean();
+  // Active courses sort by manual `order`; archived ones fall to the end.
+  const courses = await Course.find().sort({ order: 1, createdAt: -1 }).lean();
   const ids = courses.map(c => c._id);
   const moduleCounts = await Module.aggregate([
     { $match: { courseId: { $in: ids } } },
@@ -179,6 +180,30 @@ app.post('/api/courses', w(async (req, res) => {
 app.get('/api/courses/:id', w(async (req, res) => {
   const c = await Course.findById(req.params.id).lean();
   if (!c) return res.status(404).json({ error: 'No encontrado' });
+  res.json(c);
+}));
+
+// Reorder — accepts { orderedIds: [...] } and writes the index into `order`.
+// Routed BEFORE /:id so "reorder" isn't treated as a course id.
+app.post('/api/courses/reorder', w(async (req, res) => {
+  const ids = Array.isArray(req.body.orderedIds) ? req.body.orderedIds : [];
+  await Promise.all(ids.map((id, i) =>
+    Course.findByIdAndUpdate(id, { order: i }).catch(() => null)
+  ));
+  res.json({ ok: true, count: ids.length });
+}));
+
+// Update lifecycle status (active|finished|cancelled).
+app.post('/api/courses/:id/status', w(async (req, res) => {
+  const { status } = req.body;
+  if (!['active','finished','cancelled'].includes(status)) {
+    return res.status(400).json({ error: 'status inválido' });
+  }
+  const c = await Course.findByIdAndUpdate(
+    req.params.id,
+    { status, statusChangedAt: new Date() },
+    { new: true }
+  );
   res.json(c);
 }));
 
