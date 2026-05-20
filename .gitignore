@@ -1,4 +1,5 @@
 node_modules/
+mds/
 .env
 public/uploads/*
 !public/uploads/.gitkeep

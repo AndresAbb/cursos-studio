@@ -10,7 +10,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const os     = require('os');
 
-const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend, Skill } = require('./models');
+const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend, Skill, GhostCourse } = require('./models');
 const { isAvailable: ytdlpAvailable, fetchPlaylist } = require('./ytdlp');
 const { isConfigured: spotifyConfigured, fetchItems: spotifyFetchItems } = require('./services/spotify');
 const { checkEmbed } = require('./services/embedCheck');
@@ -666,6 +666,49 @@ app.patch('/api/externals/:id', w(async (req, res) => {
 app.delete('/api/externals/:id', w(async (req, res) => {
   await ExternalCourse.findByIdAndDelete(req.params.id);
   res.json({ ok: true });
+}));
+
+// ════════════════════════════════════════════════
+// GHOST COURSES (planned-but-not-yet-created)
+// ════════════════════════════════════════════════
+app.get('/api/ghosts', w(async (req, res) => {
+  res.json(await GhostCourse.find().sort({ order: 1, plannedStartDate: 1, createdAt: -1 }).lean());
+}));
+
+app.post('/api/ghosts', w(async (req, res) => {
+  res.json(await GhostCourse.create(req.body));
+}));
+
+app.patch('/api/ghosts/:id', w(async (req, res) => {
+  res.json(await GhostCourse.findByIdAndUpdate(req.params.id, req.body, { new: true }));
+}));
+
+app.delete('/api/ghosts/:id', w(async (req, res) => {
+  await GhostCourse.findByIdAndDelete(req.params.id);
+  res.json({ ok: true });
+}));
+
+// Promote a ghost into a real Course (copies title/emoji/color/startDate,
+// marks the ghost as promoted, returns the new course).
+app.post('/api/ghosts/:id/promote', w(async (req, res) => {
+  const g = await GhostCourse.findById(req.params.id);
+  if (!g) return res.status(404).json({ error: 'No encontrado' });
+  if (g.status === 'promoted' && g.promotedCourseId) {
+    const existing = await Course.findById(g.promotedCourseId).lean();
+    if (existing) return res.json({ ghost: g, course: existing });
+  }
+  const c = await Course.create({
+    title:       g.title,
+    emoji:       g.emoji || '📚',
+    color:       g.color,
+    description: g.notes || '',
+    startDate:   g.plannedStartDate,
+    background:  { type: 'color', value: '#f5f0e8' },
+  });
+  g.status = 'promoted';
+  g.promotedCourseId = c._id;
+  await g.save();
+  res.json({ ghost: g, course: c });
 }));
 
 // ════════════════════════════════════════════════

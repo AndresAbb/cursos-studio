@@ -165,6 +165,9 @@ const Course = {
       if (window.SkillGraph) SkillGraph.close();
       $('course-view').style.display = '';
       $('sticker-canvas').classList.add('active');
+      // Reset the global mood theme — course view drives its own bg/contrast
+      // via Stickers.applyCurrentBg + applyDarkModeForBg(courseBg).
+      document.body.dataset.theme = 'day';
       $('cv-title').innerHTML = `${c.emoji} ${escapeHTML(c.title)}`;
 
       Stickers.applyCurrentBg();
@@ -192,6 +195,10 @@ const Course = {
     applyDarkModeForBg(null);
     this.renderSidebar();
     this.loadList();
+    if (typeof Home !== 'undefined') Home.renderHero();
+    if (typeof Ghosts !== 'undefined') {
+      Ghosts.loadList().then(() => Ghosts.render());
+    }
   },
 
   switchView(v) {
@@ -965,6 +972,7 @@ const Course = {
     $('btn-new-course').addEventListener('click', () => this.showCreate());
     $('hero-cta').addEventListener('click', () => this.showCreate());
     $('hero-cta-external').addEventListener('click', () => Externals.showCreate());
+    $('hero-cta-ghost')?.addEventListener('click', () => Ghosts.showCreate());
     $('nav-new').addEventListener('click', () => this.showCreate());
     $('nav-new-external').addEventListener('click', () => Externals.showCreate());
     $('nav-home').addEventListener('click', () => this.showHome());

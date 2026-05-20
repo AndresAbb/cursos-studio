@@ -78,6 +78,13 @@ const API = {
   updateExternal(id, data)    { return this.req(`/api/externals/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
   deleteExternal(id)          { return this.req(`/api/externals/${id}`, { method: 'DELETE' }); },
 
+  // Ghost courses (cronograma)
+  listGhosts()            { return this.req('/api/ghosts'); },
+  createGhost(data)       { return this.req('/api/ghosts', { method: 'POST', body: JSON.stringify(data) }); },
+  updateGhost(id, data)   { return this.req(`/api/ghosts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
+  deleteGhost(id)         { return this.req(`/api/ghosts/${id}`, { method: 'DELETE' }); },
+  promoteGhost(id)        { return this.req(`/api/ghosts/${id}/promote`, { method: 'POST' }); },
+
   // Global calendar
   globalCalendar() { return this.req('/api/calendar/global'); },
 

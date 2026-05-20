@@ -1,3 +1,41 @@
+// ── Home dynamic hero (time-of-day greeting + rotating quote) ──
+const Home = {
+  _interval: null,
+
+  // Map hero mood → body palette. Night/evening go dark; others light.
+  themeForMood(mood) {
+    if (mood === 'night')   return 'night';
+    if (mood === 'evening') return 'dusk';
+    return 'day';
+  },
+
+  renderHero() {
+    const pick = pickQuoteForNow(State.quotes);
+    if (!pick) return;
+    const moodLbl = {
+      dawn:'Madrugada', morning:'Mañana', midday:'Mediodía',
+      afternoon:'Tarde', evening:'Anochecer', night:'Noche',
+    }[pick.mood] || '';
+    const root = $('hero-dynamic');
+    if (root) root.dataset.mood = pick.mood;
+
+    // Propagate the mood to the whole interface via body[data-theme]
+    document.body.dataset.theme = this.themeForMood(pick.mood);
+
+    const dEl = $('hero-day');     if (dEl) dEl.textContent     = pick.day.label ? `${pick.day.label} · ${pick.day.vibe}` : '';
+    const tEl = $('hero-time');    if (tEl) tEl.textContent    = moodLbl;
+    const gEl = $('hero-greeting');if (gEl) gEl.innerHTML      = `${escapeHTML(pick.greeting)}<span class="hero-comma">,</span><br/><em>${escapeHTML(State.settings?.displayName || 'aprende con intención')}.</em>`;
+    const qEl = $('hero-quote');   if (qEl) qEl.textContent    = `“${pick.quote.text}”`;
+    const aEl = $('hero-quote-author'); if (aEl) aEl.textContent = pick.quote.author ? `— ${pick.quote.author}` : '';
+  },
+
+  init() {
+    // Refresh every 5 min so the hero crosses mood boundaries without a reload.
+    clearInterval(this._interval);
+    this._interval = setInterval(() => this.renderHero(), 5 * 60 * 1000);
+  },
+};
+
 // Exposed as window.appBoot so App.jsx can call it after React renders the DOM.
 window.appBoot = async () => {
   // 1. Health + capabilities
@@ -41,11 +79,14 @@ window.appBoot = async () => {
   SkillGraph.init();
   Course.init();
   Externals.init();
+  Ghosts.init();
   await Exams.init();   // async: loads exam_templates.json before any UI
   Settings.init();
   if (State.features?.multiplayer) {
     await Friends.init();
   }
+  await loadQuotes();
+  Home.init();
 
   // 4. Wire final exam button (rendered on grades view)
   document.addEventListener('click', e => {
@@ -72,11 +113,16 @@ window.appBoot = async () => {
     }
   });
 
-  // 6. Load courses
-  await Course.loadList();
+  // 6. Load courses + planned ghost courses
+  await Promise.all([
+    Course.loadList(),
+    Ghosts.loadList(),
+  ]);
 
   // 7. Initial view
   Course.showHome();
+  Home.renderHero();
+  Ghosts.render();
 
   console.log('📚 Cursos Studio v3 iniciado');
 };

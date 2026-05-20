@@ -167,6 +167,22 @@ const FriendSchema = new Schema({
   mutePokes:    { type: Boolean, default: false },
 }, { timestamps: true });
 
+// ─── GHOST COURSE ────────────────────────────────
+// Lightweight "planned-but-not-yet-created" course shown on the home
+// cronograma. Has no modules, no calendar, no exams — only intent.
+// Lifecycle: planned → promoted (becomes a real Course) | discarded.
+const GhostCourseSchema = new Schema({
+  title:            { type: String, required: true },
+  emoji:            { type: String, default: '🌱' },
+  color:            { type: String, default: '#7a4a2a' },
+  plannedStartDate: { type: Date,   default: Date.now },
+  durationWeeks:    { type: Number, default: 4 },
+  notes:            { type: String, default: '' },
+  status:           { type: String, enum: ['planned','promoted','discarded'], default: 'planned', index: true },
+  promotedCourseId: { type: Schema.Types.ObjectId, ref: 'Course', default: null },
+  order:            { type: Number, default: 0, index: true },
+}, { timestamps: true });
+
 // ─── SKILL ───────────────────────────────────────
 // 2D graph node. Connections are stored on each side as a denormalized
 // list of peer skillIds + strength. UI keeps them in sync.
@@ -201,4 +217,5 @@ module.exports = {
   Settings: mongoose.model('Settings', SettingsSchema),
   Friend:  mongoose.model('Friend', FriendSchema),
   Skill:   mongoose.model('Skill', SkillSchema),
+  GhostCourse: mongoose.model('GhostCourse', GhostCourseSchema),
 };

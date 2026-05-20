@@ -2,6 +2,7 @@
 const State = {
   courses:      [],
   externals:    [],
+  ghosts:       [],
   cur:          null,   // curso actual
   curModules:   [],
   curStickers:  [],
@@ -9,8 +10,11 @@ const State = {
   view:         'cal',  // 'cal' | 'mod' | 'grades' | 'syllabus'
   weekOff:      0,
   globalWeekOff: 0,
+  cronoScale:    'weeks',  // 'weeks' | 'months' — home cronograma scale
+  cronoOff:      0,         // pan offset (units of `cronoScale`)
   settings:     {},
   capabilities: {},
+  quotes:       null,       // loaded from /templates/quotes.json
 };
 
 // ── Constantes ───────────────────────────────────
@@ -215,6 +219,52 @@ function dayStatus(day, mods, today) {
 
 function statusEmoji(s) {
   return { complete: '✓', partial: '◑', missed: '✗', future: '', empty: '' }[s] || '';
+}
+
+// ── Time-of-day mood (for home greeting/quotes) ──
+// Returns one of: dawn (4-6h) | morning (6-12) | midday (12-14) |
+// afternoon (14-19) | evening (19-22) | night (22-4).
+function timeOfDayMood(d = new Date()) {
+  const h = d.getHours();
+  if (h >= 4  && h < 6)  return 'dawn';
+  if (h >= 6  && h < 12) return 'morning';
+  if (h >= 12 && h < 14) return 'midday';
+  if (h >= 14 && h < 19) return 'afternoon';
+  if (h >= 19 && h < 22) return 'evening';
+  return 'night';
+}
+
+// Deterministic pick: hash the date+mood so the user sees the same quote
+// for the same period (won't flicker on every render/navigation).
+function _hashPick(arr, seed) {
+  if (!arr || !arr.length) return null;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+}
+
+function pickQuoteForNow(quotes, d = new Date()) {
+  if (!quotes) return null;
+  const mood   = timeOfDayMood(d);
+  const dayIdx = (d.getDay() + 6) % 7;   // Mon=0 … Sun=6 (matches DAYS_SHORT)
+  const seed   = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${mood}`;
+  const pool   = quotes.quotes?.[mood] || [];
+  const quote  = _hashPick(pool, seed) || { text: 'Aprende con intención.', author: '' };
+  const greeting = _hashPick(quotes.greetings?.[mood] || [], seed + 'g') || 'Bienvenido';
+  const day      = quotes.dayMood?.[String(dayIdx)] || { label: '', vibe: '' };
+  return { mood, greeting, quote, day };
+}
+
+async function loadQuotes() {
+  if (State.quotes) return State.quotes;
+  try {
+    const res = await fetch('/templates/quotes.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('quotes fetch failed');
+    State.quotes = await res.json();
+  } catch {
+    State.quotes = { greetings: {}, dayMood: {}, quotes: {} };
+  }
+  return State.quotes;
 }
 
 // ── Dark-mode auto-toggle ─────────────────────────

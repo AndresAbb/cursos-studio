@@ -1,0 +1,61 @@
+{
+  "greetings": {
+    "dawn":      ["Madrugando", "Antes que el sol", "Silencio fértil", "Hora de los búhos"],
+    "morning":   ["Buenos días", "Empieza el día", "Café y enfoque", "Manos a la obra"],
+    "midday":    ["Mediodía", "En pleno ritmo", "Recarga y sigue", "Centro del día"],
+    "afternoon": ["Buenas tardes", "Segundo aire", "Sigue avanzando", "La tarde acompaña"],
+    "evening":   ["Buenas noches", "Cierre del día", "Última pieza", "Recoger frutos"],
+    "night":     ["Modo noche", "El silencio enseña", "Estudio nocturno", "Tinta y vela"]
+  },
+  "dayMood": {
+    "0": { "label": "Lunes",     "vibe": "Semana nueva, primera página." },
+    "1": { "label": "Martes",    "vibe": "Día de cimientos." },
+    "2": { "label": "Miércoles", "vibe": "Mitad del camino — sostén el ritmo." },
+    "3": { "label": "Jueves",    "vibe": "El cierre se acerca, profundiza." },
+    "4": { "label": "Viernes",   "vibe": "Cosecha lo plantado esta semana." },
+    "5": { "label": "Sábado",    "vibe": "Estudio sin reloj." },
+    "6": { "label": "Domingo",   "vibe": "Reflexiona y planifica." }
+  },
+  "quotes": {
+    "dawn": [
+      { "text": "La disciplina es elegir entre lo que quieres ahora y lo que quieres más.", "author": "Abraham Lincoln" },
+      { "text": "El que madruga, encuentra silencio — y en el silencio, ideas.", "author": "Anónimo" },
+      { "text": "Quien controla la mañana, controla el día.", "author": "Hal Elrod" },
+      { "text": "Pequeños pasos al amanecer construyen gigantes al atardecer.", "author": "Proverbio" }
+    ],
+    "morning": [
+      { "text": "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", "author": "Robert Collier" },
+      { "text": "La calidad no es un acto, es un hábito.", "author": "Aristóteles" },
+      { "text": "Aprende como si fueras a vivir para siempre.", "author": "Mahatma Gandhi" },
+      { "text": "Empieza por hacer lo necesario, después lo posible, y de repente harás lo imposible.", "author": "San Francisco de Asís" },
+      { "text": "Una hora de planificación ahorra diez de ejecución.", "author": "Brian Tracy" },
+      { "text": "Hoy es un buen día para empezar.", "author": "Anónimo" }
+    ],
+    "midday": [
+      { "text": "El progreso, no la perfección.", "author": "Anónimo" },
+      { "text": "Lo que no se mide, no se mejora.", "author": "Peter Drucker" },
+      { "text": "Atención plena es la materia prima del aprendizaje.", "author": "Anónimo" },
+      { "text": "Una pausa breve es una inversión, no una pérdida.", "author": "Anónimo" }
+    ],
+    "afternoon": [
+      { "text": "La constancia vence lo que la dicha no alcanza.", "author": "Johann W. Goethe" },
+      { "text": "Cada experto fue alguna vez un principiante.", "author": "Helen Hayes" },
+      { "text": "El segundo viento llega a quien sigue caminando.", "author": "Anónimo" },
+      { "text": "No cuentes los días, haz que los días cuenten.", "author": "Muhammad Ali" },
+      { "text": "Lo importante es no dejar de cuestionar.", "author": "Albert Einstein" }
+    ],
+    "evening": [
+      { "text": "Cada día sabes un poco más que ayer. Eso ya es ganar.", "author": "Anónimo" },
+      { "text": "Revisar lo aprendido es estudiarlo dos veces.", "author": "Proverbio" },
+      { "text": "Un día sin aprender algo nuevo es un día perdido.", "author": "Anónimo" },
+      { "text": "La paciencia es amarga, pero su fruto es dulce.", "author": "Jean-Jacques Rousseau" }
+    ],
+    "night": [
+      { "text": "La noche es el tutor que enseña sin palabras.", "author": "Anónimo" },
+      { "text": "Estudia hasta que la mente te susurre 'descansa'.", "author": "Anónimo" },
+      { "text": "Las grandes ideas nacen tarde, cuando el ruido calla.", "author": "Anónimo" },
+      { "text": "Duerme sobre lo aprendido y mañana lo sabrás mejor.", "author": "Proverbio" },
+      { "text": "El sueño consolida lo que el día sembró.", "author": "Anónimo" }
+    ]
+  }
+}

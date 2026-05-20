@@ -1043,3 +1043,377 @@ select.select-sm {
 }
 .course-status-row .btn { width: auto; }
 
+/* ─── GLOBAL DAY / NIGHT THEME ───────────────────── */
+/* Light themes (default + variants from morning to evening).
+   Override CSS variables on body to repaint the whole interface. */
+body { background: var(--bg); transition: background .5s, color .3s; }
+
+body[data-theme="day"] { /* default — already covered by :root */ }
+
+body[data-theme="dusk"] {
+  --bg:      #efe1cb;
+  --surface: #fbf3e6;
+  --s2:      #f0e2cd;
+  --border:  #c4b193;
+  --text:    #2a2015;
+  --text2:   #6b5c40;
+}
+
+body[data-theme="night"] {
+  --bg:      #14141f;
+  --surface: #1f1f2e;
+  --s2:      #2a2a3d;
+  --border:  #3a3a4d;
+  --text:    #f5f0e8;
+  --text2:   #b0a8c8;
+  --acc:     #e07a3a;
+  --acc2:    #6db383;
+  --acc3:    #9b89d4;
+  --cream:   #2d2a3d;
+  --gold:    #f0c548;
+  --danger:  #e15a5a;
+  --shadow:    0 2px 8px rgba(0,0,0,.45);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.7);
+}
+/* In night theme, several places hard-coded white/black tones need flipping. */
+body[data-theme="night"] .course-card,
+body[data-theme="night"] .mod-item,
+body[data-theme="night"] .crono-block,
+body[data-theme="night"] .grades-table,
+body[data-theme="night"] .modal,
+body[data-theme="night"] .day-col {
+  background: var(--surface);
+  border-color: var(--border);
+}
+body[data-theme="night"] .cc-header { background: rgba(255,255,255,0.04); }
+body[data-theme="night"] .cc-fav    { background: rgba(255,255,255,0.92); }
+body[data-theme="night"] .btn-outline { color: var(--text); border-color: var(--border); }
+body[data-theme="night"] .btn-outline:hover { background: rgba(255,255,255,0.06); }
+body[data-theme="night"] .vbtn { color: var(--text2); }
+body[data-theme="night"] .vbtn.on { background: var(--s2); color: var(--text); }
+body[data-theme="night"] #sidebar { background: rgba(0,0,0,0.25); border-right-color: var(--border); }
+body[data-theme="night"] .swatch.on { box-shadow: 0 0 0 2px var(--gold); }
+body[data-theme="night"] input,
+body[data-theme="night"] select,
+body[data-theme="night"] textarea {
+  background: var(--s2);
+  color: var(--text);
+  border-color: var(--border);
+}
+body[data-theme="night"] .ghost-pill {
+  background: rgba(212,160,23,0.20);
+  color: var(--gold);
+  border-color: rgba(212,160,23,0.5);
+}
+body[data-theme="night"] .crono-rowtrack { background: rgba(255,255,255,0.05); }
+body[data-theme="night"] .crono-bucket.cur { background: rgba(212,160,23,0.18); }
+body[data-theme="night"] .crono-bucket-now { background: var(--gold); color: #1a1a1a; }
+
+/* ─── DYNAMIC HERO ──────────────────────────────── */
+.hero-dynamic {
+  position: relative;
+  padding: 28px 28px 22px;
+  border-radius: 18px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  transition: background .6s, color .3s;
+  color: var(--text);
+}
+.hero-dynamic[data-mood="dawn"]      { background: radial-gradient(circle at 80% 20%, #f5d59e88, transparent 60%), linear-gradient(135deg, #fff5e6, #f5ebd9); color: #2a2015; }
+.hero-dynamic[data-mood="morning"]   { background: radial-gradient(circle at 75% 18%, #ffd88088, transparent 55%), linear-gradient(135deg, #fffaf0, #f7efde); color: #2a2015; }
+.hero-dynamic[data-mood="midday"]    { background: radial-gradient(circle at 50% 0%,  #ffe4a188, transparent 50%), linear-gradient(135deg, #fffcf3, #f5e9c8); color: #2a2015; }
+.hero-dynamic[data-mood="afternoon"] { background: radial-gradient(circle at 20% 80%, #f0c89c88, transparent 55%), linear-gradient(135deg, #fbf3e6, #f0e2cd); color: #2a2015; }
+.hero-dynamic[data-mood="evening"]   { background: radial-gradient(circle at 80% 90%, #c8a07399, transparent 55%), linear-gradient(135deg, #efe1cb, #d4b894); color: #2a2015; }
+.hero-dynamic[data-mood="night"]     { background: radial-gradient(circle at 90% 10%, #7a6abf55, transparent 55%), linear-gradient(135deg, #1a1a2e, #2d2a4a); color: #f5f0e8; }
+
+/* Per-mood meta/quote contrasts — always readable against the gradient. */
+.hero-dynamic[data-mood="evening"] .hero-meta,
+.hero-dynamic[data-mood="evening"] .hero-quote,
+.hero-dynamic[data-mood="evening"] .hero-quote-author { color: #4a3a20; }
+.hero-dynamic[data-mood="night"]   .hero-text         { color: #fff8e8; }
+.hero-dynamic[data-mood="night"]   .hero-meta,
+.hero-dynamic[data-mood="night"]   .hero-quote,
+.hero-dynamic[data-mood="night"]   .hero-quote-author { color: #d9d2e8; }
+.hero-dynamic[data-mood="night"]   .hero-text em      { color: #f0c548; }
+.hero-dynamic[data-mood="night"]   .hero-comma        { color: #f0c548; }
+
+.hero-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 14px;
+  font-family: 'DM Sans', sans-serif;
+}
+.hero-time::before {
+  content: '·';
+  margin-right: 14px;
+  opacity: .5;
+}
+.hero-text {
+  font-family: 'Fraunces', serif;
+  font-size: 44px;
+  font-weight: 300;
+  line-height: 1.05;
+  margin: 0 0 14px;
+  letter-spacing: -.5px;
+  color: inherit;
+}
+.hero-text em { font-style: italic; color: var(--acc); font-weight: 400; }
+.hero-comma { color: var(--acc); }
+.hero-quote {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 640px;
+  color: var(--text2);
+  margin: 0 0 4px;
+}
+.hero-quote-author {
+  font-size: 12px;
+  color: var(--text2);
+  letter-spacing: .3px;
+}
+
+/* ─── CRONOGRAMA (home timeline) ────────────────── */
+.crono-block {
+  margin: 24px 0 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  min-height: 220px;
+  color: var(--text);
+}
+.crono-headerbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.crono-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.crono-scale {
+  display: inline-flex;
+  background: var(--s2);
+  border-radius: 8px;
+  padding: 3px;
+}
+.crono-scale-btn {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text2);
+  border-radius: 6px;
+  transition: all .15s;
+}
+.crono-scale-btn.on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.crono-nav { display: flex; gap: 4px; }
+
+/* Axis row: 200px label spacer + flex buckets */
+.crono-axis {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+.crono-axis-spacer { width: 200px; flex-shrink: 0; }
+.crono-axis-buckets {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+.crono-bucket {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  padding: 4px 2px;
+  position: relative;
+  border-right: 1px dashed var(--border);
+}
+.crono-bucket:last-child { border-right: none; }
+.crono-bucket.cur { background: rgba(212, 160, 23, 0.14); border-radius: 6px; }
+.crono-bucket-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crono-bucket-sub { font-size: 9px; color: var(--text2); margin-top: 1px; }
+.crono-bucket-now {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--acc);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+/* Rows section */
+.crono-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+}
+.crono-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.crono-rowhead {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 0;
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text2);
+}
+.crono-rowhead-lead {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.crono-rowhead-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.crono-pill {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--text2);
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.ghost-pill {
+  background: rgba(122, 74, 42, 0.14);
+  color: #7a4a2a;
+  border: 1px dashed rgba(122, 74, 42, 0.4);
+}
+
+.crono-rowtrack {
+  flex: 1;
+  position: relative;
+  height: 32px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.crono-row-today {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--acc);
+  transform: translateX(-1px);
+  pointer-events: none;
+  opacity: .55;
+  z-index: 1;
+}
+.crono-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: var(--bar-color, var(--acc));
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  transition: transform .15s, box-shadow .15s;
+  overflow: hidden;
+  min-width: 6px;
+  z-index: 2;
+}
+.crono-bar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  z-index: 3;
+}
+.crono-bar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.30);
+}
+.crono-bar.ghost {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bar-color, var(--acc)) 0 8px,
+    color-mix(in srgb, var(--bar-color, var(--acc)) 60%, white) 8px 16px
+  );
+  border: 1px dashed rgba(255,255,255,0.65);
+  opacity: 0.92;
+}
+.crono-fav { width: 16px; height: 16px; border-radius: 3px; background: white; }
+
+.crono-empty {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--text2);
+}
+.crono-empty-icon { font-size: 36px; margin-bottom: 6px; }
+.crono-empty-title { font-family: 'Fraunces', serif; font-size: 16px; color: var(--text); }
+.crono-empty-sub { font-size: 12px; margin-top: 2px; }
+
+.crono-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  flex-wrap: wrap;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .crono-axis-spacer,
+  .crono-rowhead { width: 130px; }
+  .hero-text     { font-size: 34px; }
+  .hero-dynamic  { padding: 22px 18px; }
+}
+

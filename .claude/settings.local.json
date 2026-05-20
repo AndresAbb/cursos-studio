@@ -7,7 +7,13 @@
       "Bash(git push *)",
       "Bash(git fetch *)",
       "PowerShell($env:PATH += ';C:\\\\Program Files\\\\GitHub CLI;C:\\\\Program Files \\(x86\\)\\\\GitHub CLI'; Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)",
-      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\",\"C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\",\"$env:LOCALAPPDATA\\\\GitHubCLI\" -ErrorAction SilentlyContinue | Select-Object FullName; where.exe gh 2>$null)"
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\",\"C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\",\"$env:LOCALAPPDATA\\\\GitHubCLI\" -ErrorAction SilentlyContinue | Select-Object FullName; where.exe gh 2>$null)",
+      "PowerShell(docker exec mongo mongosh \"mongodb://localhost:27017/cursos_studio\" --eval \"db.getCollectionNames\\(\\).forEach\\(c => { print\\(c + ': ' + db[c].countDocuments\\(\\)\\) }\\)\")",
+      "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\server\\\\index.js\")",
+      "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\ghosts.js\")",
+      "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\app.js\")",
+      "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\utils.js\")",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }
