@@ -147,15 +147,16 @@ const GlobalCalendar = {
         maxModWeek[cid] = m.week;
       }
     }
-    // courseEndWeek priority: manual endDate > syllabusLabels > maxModWeek
+    // End cap per course.
+    // courseEndDate: absolute Date cutoff from manual endDate field (day comparison).
+    // courseEndWeek: course-relative week cap from syllabusLabels or maxModWeek (fallback).
+    const courseEndDate = {};
     const courseEndWeek = {};
     for (const c of activeCourses) {
       const id = String(c._id);
       if (c.endDate) {
-        const d = new Date(c.endDate); d.setHours(0, 0, 0, 0);
-        const dow = d.getDay();
-        d.setDate(d.getDate() + ((dow === 0 ? -6 : 1) - dow)); // snap to Monday of that week
-        courseEndWeek[id] = calcCourseWeek(c.startDate, d);
+        const end = new Date(c.endDate); end.setHours(23, 59, 59, 999);
+        courseEndDate[id] = end;
       } else {
         const labels = c.syllabusLabels;
         if (labels && labels.length) {
@@ -175,11 +176,14 @@ const GlobalCalendar = {
       for (const m of modules) {
         const c = coursesById[String(m.courseId)];
         if (!c) continue;
+        const cid = String(m.courseId);
         const cw = calcCourseWeek(c.startDate, ws);
-        const endWk = courseEndWeek[String(m.courseId)];
-        if (m.week === cw && m.dayOfWeek === d && (endWk === undefined || m.week <= endWk)) {
-          dayModules.push({ m, c });
-        }
+        if (m.week !== cw || m.dayOfWeek !== d) continue;
+        const endD = courseEndDate[cid];
+        if (endD && day.getTime() > endD.getTime()) continue;
+        const endWk = courseEndWeek[cid];
+        if (endWk !== undefined && m.week > endWk) continue;
+        dayModules.push({ m, c });
       }
 
       const dayExternals = externals.filter(e => {
