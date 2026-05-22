@@ -66,6 +66,7 @@ const CourseSchema = new Schema({
   favicon:     { type: String, default: '' },
   homepageUrl: { type: String, default: '' },
   startDate:   { type: Date, default: Date.now },
+  endDate:     { type: Date, default: null },
   background: {
     type:  { type: String, enum: ['color','image','preset'], default: 'color' },
     value: { type: String, default: '#f5f0e8' },
@@ -143,6 +144,9 @@ const SettingsSchema = new Schema({
   avatarEmoji: { type: String, default: '🎓' },
   // Public URL used in invite links (overrides auto-detected LAN IP)
   publicUrl:   { type: String, default: '' },
+  // Quick-access favicon buttons shown on the home screen
+  quickLinks:     { type: [{ url: String, _id: false }], default: [] },
+  showQuickLinks: { type: Boolean, default: true },
 }, { timestamps: true });
 
 // ─── FRIEND CONNECTION ───────────────────────────

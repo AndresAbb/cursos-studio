@@ -603,7 +603,10 @@ const Course = {
         <label>Página oficial (opcional, para favicon)</label>
         <input id="st-url" value="${escapeHTML(State.cur.homepageUrl || '')}" placeholder="https://platform.example.com">
       </div>
-      <div class="fg"><label>Fecha de inicio</label><input type="date" id="st-dt" value="${new Date(State.cur.startDate).toISOString().split('T')[0]}"></div>
+      <div class="row-2">
+        <div class="fg"><label>Fecha de inicio</label><input type="date" id="st-dt" value="${new Date(State.cur.startDate).toISOString().split('T')[0]}"></div>
+        <div class="fg"><label>Fecha de fin (opcional)</label><input type="date" id="st-end" value="${State.cur.endDate ? new Date(State.cur.endDate).toISOString().split('T')[0] : ''}"></div>
+      </div>
       <div style="margin-top:12px">
         <button type="button" class="btn btn-outline btn-sm" id="st-edit-syllabus">📋 Editar secciones del sílabo (${(State.cur.syllabusLabels||[]).length})</button>
       </div>
@@ -615,6 +618,7 @@ const Course = {
         description: $val('st-d'),
         homepageUrl: $val('st-url').trim(),
         startDate:   $val('st-dt'),
+        endDate:     $val('st-end') || null,
       });
       State.cur = updated;
       $('cv-title').innerHTML = `${updated.emoji} ${escapeHTML(updated.title)}`;

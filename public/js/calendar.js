@@ -139,7 +139,7 @@ const GlobalCalendar = {
     const activeCourses = courses.filter(c => !c.status || c.status === 'active');
     const coursesById = Object.fromEntries(activeCourses.map(c => [String(c._id), c]));
 
-    // Max module week per course — used as fallback when no syllabusLabels are defined
+    // Max module week per course — fallback when no manual endDate or syllabusLabels
     const maxModWeek = {};
     for (const m of modules) {
       const cid = String(m.courseId);
@@ -147,14 +147,22 @@ const GlobalCalendar = {
         maxModWeek[cid] = m.week;
       }
     }
+    // courseEndWeek priority: manual endDate > syllabusLabels > maxModWeek
     const courseEndWeek = {};
     for (const c of activeCourses) {
       const id = String(c._id);
-      const labels = c.syllabusLabels;
-      if (labels && labels.length) {
-        courseEndWeek[id] = Math.max(...labels.map(l => l.endWeek));
-      } else if (maxModWeek[id] !== undefined) {
-        courseEndWeek[id] = maxModWeek[id];
+      if (c.endDate) {
+        const d = new Date(c.endDate); d.setHours(0, 0, 0, 0);
+        const dow = d.getDay();
+        d.setDate(d.getDate() + ((dow === 0 ? -6 : 1) - dow)); // snap to Monday of that week
+        courseEndWeek[id] = calcCourseWeek(c.startDate, d);
+      } else {
+        const labels = c.syllabusLabels;
+        if (labels && labels.length) {
+          courseEndWeek[id] = Math.max(...labels.map(l => l.endWeek));
+        } else if (maxModWeek[id] !== undefined) {
+          courseEndWeek[id] = maxModWeek[id];
+        }
       }
     }
 
