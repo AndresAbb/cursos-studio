@@ -37,7 +37,7 @@ const Ghosts = {
         buckets.push({
           start: a, end: b,
           label: `${a.toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`,
-          sub:   `Sem ${this.isoWeek(a)}`,
+          sub:   b.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
           isCurrent: today >= a && today <= b,
         });
       }

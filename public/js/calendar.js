@@ -8,7 +8,8 @@ const Calendar = {
     const we = new Date(ws); we.setDate(ws.getDate() + 6);
     const fmt = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
     const courseWeek = calcCourseWeek(State.cur.startDate, ws);
-    $('week-label').textContent = `${fmt(ws)} — ${fmt(we)}`;
+    const relPart = State.showRelWeek ? `Sem ${courseWeek + 1} · ` : '';
+    $('week-label').textContent = `${relPart}${fmt(ws)} — ${fmt(we)}`;
     const today      = new Date(); today.setHours(0, 0, 0, 0);
 
     // Show syllabus section label for current week
@@ -89,6 +90,11 @@ const Calendar = {
     $('cal-prev').addEventListener('click', () => this.changeWeek(-1));
     $('cal-next').addEventListener('click', () => this.changeWeek(1));
     $('cal-today').addEventListener('click', () => this.goToday());
+    $('cal-rel-toggle').addEventListener('click', () => {
+      State.showRelWeek = !State.showRelWeek;
+      $('cal-rel-toggle').classList.toggle('active', State.showRelWeek);
+      this.render();
+    });
   },
 };
 

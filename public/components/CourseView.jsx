@@ -21,6 +21,7 @@ function CourseView() {
           <button className="btn btn-outline btn-sm" id="cal-next">›</button>
           <h3 id="week-label"></h3>
           <button className="btn btn-outline btn-sm" id="cal-today">Hoy</button>
+          <button className="btn btn-outline btn-sm active" id="cal-rel-toggle" title="Alternar semana relativa">Sem</button>
         </div>
         <div id="cal-section-label" className="cal-section-label" style={{ display: 'none' }}></div>
         <div className="cal-grid" id="cal-grid"></div>

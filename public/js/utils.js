@@ -10,6 +10,7 @@ const State = {
   view:         'cal',  // 'cal' | 'mod' | 'grades' | 'syllabus'
   weekOff:      0,
   globalWeekOff: 0,
+  showRelWeek:  true,
   cronoScale:    'weeks',  // 'weeks' | 'months' — home cronograma scale
   cronoOff:      0,         // pan offset (units of `cronoScale`)
   settings:     {},
