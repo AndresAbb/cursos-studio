@@ -130,17 +130,31 @@ const GlobalCalendar = {
     const ws  = getWeekStart(State.globalWeekOff);
     const we  = new Date(ws); we.setDate(ws.getDate() + 6);
     const fmt = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    $('gweek-label').textContent = `${fmt(ws)} — ${fmt(we)}`;
+    const wsYear = ws.getFullYear(), weYear = we.getFullYear();
+    const yearLabel = wsYear === weYear ? ` ${wsYear}` : ` ${wsYear}–${weYear}`;
+    $('gweek-label').textContent = `${fmt(ws)} — ${fmt(we)}${yearLabel}`;
 
     const today     = new Date(); today.setHours(0, 0, 0, 0);
     const { courses, modules, externals } = this.data;
     const activeCourses = courses.filter(c => !c.status || c.status === 'active');
     const coursesById = Object.fromEntries(activeCourses.map(c => [String(c._id), c]));
+
+    // Max module week per course — used as fallback when no syllabusLabels are defined
+    const maxModWeek = {};
+    for (const m of modules) {
+      const cid = String(m.courseId);
+      if (coursesById[cid] && (maxModWeek[cid] === undefined || m.week > maxModWeek[cid])) {
+        maxModWeek[cid] = m.week;
+      }
+    }
     const courseEndWeek = {};
     for (const c of activeCourses) {
+      const id = String(c._id);
       const labels = c.syllabusLabels;
       if (labels && labels.length) {
-        courseEndWeek[String(c._id)] = Math.max(...labels.map(l => l.endWeek));
+        courseEndWeek[id] = Math.max(...labels.map(l => l.endWeek));
+      } else if (maxModWeek[id] !== undefined) {
+        courseEndWeek[id] = maxModWeek[id];
       }
     }
 
