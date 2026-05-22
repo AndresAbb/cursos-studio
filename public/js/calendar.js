@@ -7,10 +7,8 @@ const Calendar = {
     const ws = getWeekStart(State.weekOff);
     const we = new Date(ws); we.setDate(ws.getDate() + 6);
     const fmt = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    $('week-label').textContent = `${fmt(ws)} — ${fmt(we)}`;
-
     const courseWeek = calcCourseWeek(State.cur.startDate, ws);
-    $('week-label').textContent = `Sem ${courseWeek + 1} · ${fmt(ws)} — ${fmt(we)}`;
+    $('week-label').textContent = `${fmt(ws)} — ${fmt(we)}`;
     const today      = new Date(); today.setHours(0, 0, 0, 0);
 
     // Show syllabus section label for current week
@@ -130,7 +128,15 @@ const GlobalCalendar = {
 
     const today     = new Date(); today.setHours(0, 0, 0, 0);
     const { courses, modules, externals } = this.data;
-    const coursesById = Object.fromEntries(courses.map(c => [String(c._id), c]));
+    const activeCourses = courses.filter(c => !c.status || c.status === 'active');
+    const coursesById = Object.fromEntries(activeCourses.map(c => [String(c._id), c]));
+    const courseEndWeek = {};
+    for (const c of activeCourses) {
+      const labels = c.syllabusLabels;
+      if (labels && labels.length) {
+        courseEndWeek[String(c._id)] = Math.max(...labels.map(l => l.endWeek));
+      }
+    }
 
     let html = '';
     for (let d = 0; d < 7; d++) {
@@ -142,7 +148,10 @@ const GlobalCalendar = {
         const c = coursesById[String(m.courseId)];
         if (!c) continue;
         const cw = calcCourseWeek(c.startDate, ws);
-        if (m.week === cw && m.dayOfWeek === d) dayModules.push({ m, c });
+        const endWk = courseEndWeek[String(m.courseId)];
+        if (m.week === cw && m.dayOfWeek === d && (endWk === undefined || m.week <= endWk)) {
+          dayModules.push({ m, c });
+        }
       }
 
       const dayExternals = externals.filter(e => {
@@ -169,7 +178,7 @@ const GlobalCalendar = {
 
       html += `<div class="day-col${isToday ? ' today-col' : ''}${status === 'missed' ? ' elapsed-empty' : ''}">
         <div class="d-head">${DAYS_SHORT[d]}</div>
-        <div class="d-num ${isToday ? 'today' : ''}">${day.getDate()}${statusEl}</div>
+        <div class="d-num ${isToday ? 'today' : ''}">${fmt(day)}${statusEl}</div>
         <div class="d-mods">
           ${dayModules.map(({m, c}) => {
             const col = c.color || '#888';
