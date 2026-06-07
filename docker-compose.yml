@@ -1,0 +1,46 @@
+# ─── CursosStudio app ────────────────────────────────────────────
+# Runs ONLY the app as a container. MongoDB runs directly on the host
+# (installed natively / as a Windows service), not as a container.
+# Same DB name as the local setup (cursos_studio) so behaviour is
+# identical to run_local.bat.
+#
+#   docker compose up -d        # build + start the app
+#   docker compose logs -f app  # follow app logs
+#   docker compose down         # stop the app (host DB is untouched)
+#
+# App:   http://localhost:3000
+# Mongo: host's mongod on localhost:27017 (Compass connects as usual)
+#
+# NOTE: the host MongoDB must accept connections from the Docker bridge.
+# By default mongod binds to 127.0.0.1 only. Set net.bindIp to
+# 127.0.0.1,0.0.0.0 (or add the Docker gateway) in mongod.cfg so the
+# container can reach it via host.docker.internal.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # Lets the container resolve the host machine. Built in on Docker
+    # Desktop (Windows/Mac); the extra_hosts line covers Linux engines.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Loads optional secrets (APP_PASSWORD, API keys…) from .env if present.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Point the app at the host's MongoDB, not a container. Only the
+      # HOST differs from the native setup — the DB name and credentials
+      # (MONGO_USER / MONGO_PASS) come from .env via env_file, so both
+      # setups authenticate against the same shared cursos_studio DB.
+      MONGO_HOST: host.docker.internal:27017
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      # Persist user uploads across container rebuilds.
+      - ./public/uploads:/app/public/uploads
+      # Live-edit feature flags without rebuilding the image.
+      - ./courses.json:/app/courses.json
+      - ./graph.json:/app/graph.json

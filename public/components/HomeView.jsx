@@ -14,7 +14,9 @@ function HomeView() {
         <button className="btn btn-primary" id="hero-cta">✨ Crear curso</button>
         <button className="btn btn-outline" id="hero-cta-external">🌐 Curso externo</button>
         <button className="btn btn-outline" id="hero-cta-ghost">🌱 Curso fantasma</button>
+        <button className="btn btn-outline" id="hero-cta-cards">🃏 Mazo de Cartas</button>
       </div>
+      <div id="quick-links-bar" className="quick-links-bar" style={{ display: 'none' }}></div>
 
       <div className="crono-block">
         <div className="crono-headerbar">

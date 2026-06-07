@@ -209,6 +209,36 @@ const SkillSchema = new Schema({
     skillId:  { type: Schema.Types.ObjectId, ref: 'Skill' },
     strength: { type: Number, default: 0.5 },
   }],
+  background: { type: Boolean, default: false },
+  cardValue: { type: Number, default: () => Math.ceil(Math.random() * 13) },
+  cardCycle:  { type: Number, default: 0 },
+  learningExperiences: [{
+    date:  { type: Date,   default: Date.now },
+    value: { type: Number, required: true },
+    note:  { type: String, default: '' },
+  }],
+}, { timestamps: true });
+
+// ─── NETWORK NODE ────────────────────────────────
+// A "world" hub in the networking map (academic, finance, teaching,
+// entrepreneurship, cultural, non-profit). Each node holds a list of
+// potential growth projects, each with its own status. Rendered on a
+// canvas with expanding tooltips, mirroring the Skills Graph.
+const NetworkNodeSchema = new Schema({
+  name:  { type: String, required: true },
+  key:   { type: String, default: '' },     // stable id for the seeded defaults
+  emoji: { type: String, default: '🌐' },
+  color: { type: String, default: '#7c5ce0' },
+  x: { type: Number, default: 0 },
+  y: { type: Number, default: 0 },
+  projects: [{
+    name:   { type: String, required: true },
+    status: { type: String, default: 'idea' },  // see NET_STATUSES on the client
+    note:   { type: String, default: '' },
+    link:   { type: String, default: '' },
+    date:   { type: Date,   default: Date.now },
+  }],
+  order: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = {
@@ -222,4 +252,5 @@ module.exports = {
   Friend:  mongoose.model('Friend', FriendSchema),
   Skill:   mongoose.model('Skill', SkillSchema),
   GhostCourse: mongoose.model('GhostCourse', GhostCourseSchema),
+  NetworkNode: mongoose.model('NetworkNode', NetworkNodeSchema),
 };

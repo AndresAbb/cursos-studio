@@ -31,11 +31,32 @@ function SkillGraphView() {
               <option value="difficulty">Dificultad</option>
             </select>
           </label>
+          <label className="hint" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Escala
+            <select id="graph-node-scale" className="select-sm">
+              <option value="auto">Auto</option>
+              <option value="0.4">XS</option>
+              <option value="0.6">S</option>
+              <option value="0.8">M</option>
+              <option value="1">L</option>
+            </select>
+          </label>
+          <label className="hint" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Tamaño
+            <select id="graph-size-axis" className="select-sm">
+              <option value="uniform">Uniforme</option>
+              <option value="knownLevel">Conocimiento previo</option>
+              <option value="careerValue">Valor profesional</option>
+              <option value="personalPull">Atracción personal</option>
+              <option value="technical">Técnico</option>
+              <option value="difficulty">Dificultad</option>
+            </select>
+          </label>
           <button className="btn btn-primary btn-sm" id="graph-new-skill">＋ Habilidad</button>
         </div>
       </div>
       <p className="hint">
-        Tus habilidades como puntos en un mapa. Tamaño = conocimiento previo · Brillo = curso en progreso · Líneas = relaciones que tú defines.
+        Tus habilidades como puntos en un mapa. Tamaño = eje elegido · Brillo = curso en progreso · Líneas = relaciones que tú defines.
       </p>
       <div className="graph-stage" id="graph-stage">
         <canvas id="graph-canvas"></canvas>

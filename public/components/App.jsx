@@ -13,6 +13,8 @@ function App() {
         <CourseView />
         <GlobalCalendarView />
         <SkillGraphView />
+        <NetworkView />
+        <CardDeckView />
       </main>
       <PlayerOverlay />
       <StickerPanel />

@@ -162,7 +162,10 @@ const Course = {
       $('home-view').style.display = 'none';
       $('global-cal-view').style.display = 'none';
       const gv2 = $('graph-view'); if (gv2) gv2.style.display = 'none';
+      const nv2 = $('network-view'); if (nv2) nv2.style.display = 'none';
+      const cv2 = $('cards-view'); if (cv2) cv2.style.display = 'none';
       if (window.SkillGraph) SkillGraph.close();
+      if (window.NetworkGraph) NetworkGraph.close();
       $('course-view').style.display = '';
       $('sticker-canvas').classList.add('active');
       // Reset the global mood theme — course view drives its own bg/contrast
@@ -188,7 +191,10 @@ const Course = {
     $('course-view').style.display = 'none';
     $('global-cal-view').style.display = 'none';
     const gv = $('graph-view'); if (gv) gv.style.display = 'none';
+    const nv = $('network-view'); if (nv) nv.style.display = 'none';
+    const cv = $('cards-view'); if (cv) cv.style.display = 'none';
     if (window.SkillGraph) SkillGraph.close();
+    if (window.NetworkGraph) NetworkGraph.close();
     $('sticker-canvas').classList.remove('active');
     $('stk-panel').classList.remove('open');
     $('main').style.background = 'var(--bg)';

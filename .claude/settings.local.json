@@ -13,7 +13,28 @@
       "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\ghosts.js\")",
       "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\app.js\")",
       "Bash(node -c \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\public\\\\js\\\\utils.js\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(node -e ' *)",
+      "Bash(node --check \"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\server\\\\index.js\")",
+      "Bash(\"C:/Users/ANDRES/AppData/Local/Programs/mongosh/mongosh.exe\" --quiet --eval \"db.getSiblingDB\\('cursos_studio'\\).courses.countDocuments\\(\\)\" mongodb://localhost:27017)",
+      "Bash(where mongodump *)",
+      "Bash(where mongorestore *)",
+      "Bash(docker exec *)",
+      "Bash(\"C:/Users/ANDRES/AppData/Local/Programs/mongosh/mongosh.exe\" --quiet --eval \"const d=db.getSiblingDB\\('cursos_studio'\\); d.getCollectionNames\\(\\).map\\(c=>c+': '+d.getCollection\\(c\\).countDocuments\\(\\)\\).join\\('\\\\n'\\)\" mongodb://localhost:27017)",
+      "Bash(docker stop *)",
+      "Bash(git check-ignore *)",
+      "Bash(node -c server/index.js)",
+      "Bash(node -c server/mongoUri.js)",
+      "Bash(node -c server/setupAuth.js)",
+      "PowerShell($errs=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile\\(\"C:\\\\Users\\\\ANDRES\\\\Desktop\\\\Repositorios\\\\Apps Internas\\\\CursosStudio\\\\cursos-studio\\\\enable-mongo-auth.ps1\",[ref]$null,[ref]$errs\\); if\\($errs\\){$errs|ForEach-Object{$_.Message}}else{\"Parse OK - no syntax errors\"})",
+      "Bash(node -e \"const m=require\\('mongoose'\\);\\(async\\(\\)=>{const c=await m.createConnection\\('mongodb://127.0.0.1:27017/cursos_studio'\\).asPromise\\(\\);for\\(const n of ['courses','modules']\\){console.log\\(n+': '+await c.db.collection\\(n\\).countDocuments\\(\\)\\);}await c.close\\(\\);}\\)\\(\\).catch\\(e=>console.log\\('ERR',e.message\\)\\);\")",
+      "Bash(node server/setupAuth.js)",
+      "PowerShell($p = Start-Process -FilePath \"node\" -ArgumentList \"server/index.js\" -NoNewWindow -PassThru -RedirectStandardOutput \"out.log\" -RedirectStandardError \"err.log\"; Start-Sleep -Seconds 4; if \\(-not $p.HasExited\\) { Stop-Process -Id $p.Id -Force; Write-Output \"=== Server started OK \\(still running, killed for test\\) ===\" } else { Write-Output \"=== Server EXITED with code $\\($p.ExitCode\\) ===\" }; Write-Output \"=== STDOUT ===\"; Get-Content \"out.log\" -ErrorAction SilentlyContinue; Write-Output \"=== STDERR ===\"; Get-Content \"err.log\" -ErrorAction SilentlyContinue; Remove-Item out.log,err.log -ErrorAction SilentlyContinue)",
+      "Bash(python \"C:\\\\Users\\\\ANDRES\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\6f644fe8-3b69-4de9-8e79-87eefdd824af\\\\051fc9ec-8e21-456a-9b21-015c06ab4e6f\\\\skills\\\\docx\\\\scripts\\\\office\\\\validate.py\" Ejercicios_Dinamica.docx)",
+      "Bash(python \"C:/Users/ANDRES/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/6f644fe8-3b69-4de9-8e79-87eefdd824af/051fc9ec-8e21-456a-9b21-015c06ab4e6f/skills/docx/scripts/office/validate.py\" \"C:/Users/ANDRES/Desktop/Repositorios/Apps Internas/CursosStudio/cursos-studio/Ejercicios_Dinamica.docx\")",
+      "PowerShell(python -c \"import zipfile,xml.dom.minidom as m; z=zipfile.ZipFile\\('Ejercicios_Dinamica.docx'\\); bad=z.testzip\\(\\); print\\('zip ok' if bad is None else 'BAD:'+bad\\); d=z.read\\('word/document.xml'\\); m.parseString\\(d\\); print\\('xml well-formed, bytes=',len\\(d\\)\\); print\\('entries=',len\\(z.namelist\\(\\)\\)\\)\")"
     ]
   }
 }

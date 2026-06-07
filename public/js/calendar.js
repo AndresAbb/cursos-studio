@@ -108,8 +108,11 @@ const GlobalCalendar = {
     $('home-view').style.display = 'none';
     $('course-view').style.display = 'none';
     $('global-cal-view').style.display = '';
+    const cv3 = $('cards-view'); if (cv3) cv3.style.display = 'none';
     const gv3 = $('graph-view'); if (gv3) gv3.style.display = 'none';
+    const nv3 = $('network-view'); if (nv3) nv3.style.display = 'none';
     if (window.SkillGraph) SkillGraph.close();
+    if (window.NetworkGraph) NetworkGraph.close();
     $('main').style.background = 'var(--bg)';
     applyDarkModeForBg(null);
     State.globalWeekOff = 0;

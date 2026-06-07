@@ -6,10 +6,12 @@ const SkillGraph = {
   layout: 'free',          // 'free' | 'axes' | 'force'
   axisX: 'careerValue',
   axisY: 'personalPull',
+  sizeAxis: 'uniform',     // axis mapped to node radius
+  nodeScale: 'auto',       // 'auto' | number — loaded from localStorage in init()
   view: { scale: 1, panX: 0, panY: 0 },
   drag: null,              // { id, dx, dy, startX, startY, moved }
   pan:  null,              // { x, y, panX, panY }
-  hover: null,
+  hover: null,             // hovered skill id
   selected: null,          // selected skill id (for connecting)
   connectMode: false,
   animT: 0,
@@ -23,6 +25,9 @@ const SkillGraph = {
     $('course-view').style.display = 'none';
     $('global-cal-view').style.display = 'none';
     $('graph-view').style.display = '';
+    const cv4 = $('cards-view'); if (cv4) cv4.style.display = 'none';
+    const nv4 = $('network-view'); if (nv4) nv4.style.display = 'none';
+    if (window.NetworkGraph) NetworkGraph.close();
     $('main').style.background = 'var(--bg)';
     applyDarkModeForBg(null);
 
@@ -169,18 +174,30 @@ const SkillGraph = {
     if (internal) return true;
 
     const eIds = new Set((skill.externalCourseIds || []).map(String));
-    if (!eIds.size) return false;
+    if (!eIds.size && !(skill.learningExperiences || []).length) return false;
     const now = Date.now();
-    return (this.externals || []).some(e => {
+    const externalActive = (this.externals || []).some(e => {
       if (!eIds.has(String(e._id))) return false;
       const start = e.startDate ? new Date(e.startDate).getTime() : 0;
       const end   = e.endDate   ? new Date(e.endDate).getTime()   : Infinity;
       return start <= now && now <= end;
     });
+    if (externalActive) return true;
+
+    // Glow when a learning experience was logged within the last 7 weeks
+    const sevenWeeksAgo = now - 7 * 7 * 24 * 60 * 60 * 1000;
+    return (skill.learningExperiences || []).some(e => new Date(e.date).getTime() >= sevenWeeksAgo);
   },
 
   radius(skill) {
-    return 14 + (skill.knownLevel ?? 0.5) * 36;
+    const scale = this.nodeScale === 'auto'
+      ? Math.min(1, Math.sqrt(12 / Math.max(1, this.skills.length)))
+      : this.nodeScale;
+    if (this.sizeAxis === 'uniform') return 20 * scale;
+    const v = this.sizeAxis === 'knownLevel'
+      ? (skill.knownLevel ?? 0.5)
+      : (skill.axes?.[this.sizeAxis] ?? 0.5);
+    return (14 + v * 36) * scale;
   },
 
   hitTest(x, y) {
@@ -247,8 +264,8 @@ const SkillGraph = {
         if (drawn.has(key)) return;
         drawn.add(key);
         const strength = c.strength ?? 0.5;
-        ctx.strokeStyle = `rgba(180, 180, 220, ${0.15 + strength * 0.5})`;
-        ctx.lineWidth = 1 + strength * 3;
+        ctx.strokeStyle = `rgba(180, 180, 220, ${0.06 + strength * 0.22})`;
+        ctx.lineWidth = 0.75 + strength * 2;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(peer.x, peer.y);
@@ -256,12 +273,17 @@ const SkillGraph = {
       });
     });
 
-    // Nodes
+    // Nodes (bodies only — labels drawn separately to avoid clutter)
+    const labelQueue = []; // { s, r, priority } — priority: 2=selected, 1=hovered, 0=normal
     this.skills.forEach(s => {
       const r = this.radius(s);
       const active = this.isActive(s);
-      const selected = this.selected === String(s._id);
+      const isSelected = this.selected === String(s._id);
+      const isHovered  = this.hover   === String(s._id);
+      const isBg = s.background && !isSelected && !isHovered;
       const color = s.color || '#7c5ce0';
+
+      if (isBg) ctx.globalAlpha = 0.1;
 
       // Glow halo for active skills
       if (active) {
@@ -277,7 +299,7 @@ const SkillGraph = {
       }
 
       // Selection ring
-      if (selected) {
+      if (isSelected) {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -302,17 +324,39 @@ const SkillGraph = {
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Emoji / label
+      // Emoji
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `${Math.max(14, r * 0.7)}px serif`;
       ctx.fillText(s.emoji || '✦', s.x, s.y);
 
-      // Name below
-      ctx.font = '13px DM Sans, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText(s.name, s.x, s.y + r + 16);
+      if (isBg) ctx.globalAlpha = 1;
+
+      labelQueue.push({ s, r, priority: isSelected ? 2 : isHovered ? 1 : isBg ? -1 : 0, isBg: !!isBg });
+    });
+
+    // Labels — two-pass anti-clutter: high-priority nodes claim space first,
+    // then remaining labels are drawn only if they don't overlap a claimed box.
+    ctx.font = '13px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    labelQueue.sort((a, b) => b.priority - a.priority);
+    const occupied = [];
+    labelQueue.forEach(({ s, r, priority, isBg }) => {
+      const ly = s.y + r + 16;
+      const tw = ctx.measureText(s.name).width;
+      const box = { x1: s.x - tw / 2 - 6, x2: s.x + tw / 2 + 6, y1: ly - 9, y2: ly + 9 };
+      // Normal-priority labels are skipped if they overlap any already-drawn label
+      const overlaps = priority <= 0 && occupied.some(o =>
+        box.x1 < o.x2 && box.x2 > o.x1 && box.y1 < o.y2 && box.y2 > o.y1
+      );
+      if (overlaps) return;
+      ctx.globalAlpha = isBg ? 0.1 : 1;
+      ctx.fillStyle = priority > 0 ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.85)';
+      ctx.fillText(s.name, s.x, ly);
+      ctx.globalAlpha = 1;
+      if (!isBg) occupied.push(box);
     });
 
     // Connection-mode hint
@@ -406,9 +450,12 @@ const SkillGraph = {
         canvas.style.cursor = 'grabbing';
       } else {
         const hit = this.hitTest(x, y);
+        this.hover = hit ? String(hit._id) : null;
         canvas.style.cursor = hit ? 'pointer' : 'default';
       }
     });
+
+    canvas.addEventListener('mouseleave', () => { this.hover = null; });
 
     const finish = async () => {
       if (this.drag) {
@@ -458,7 +505,7 @@ const SkillGraph = {
     const title = isNew ? 'Nueva habilidad' : 'Editar habilidad';
     const data = s || { name: '', emoji: '✦', color: COLORS[0], knownLevel: 0.5,
       axes: { careerValue: 0.5, personalPull: 0.5, technical: 0.5, difficulty: 0.5 },
-      courseIds: [], externalCourseIds: [], connections: [] };
+      courseIds: [], externalCourseIds: [], connections: [], background: false };
 
     const sliderRow = (label, key, val) => `
       <div class="form-row">
@@ -525,6 +572,10 @@ const SkillGraph = {
           <div class="swatches" id="sk-colors">${swatchRow}</div>
         </div>
       </div>
+      <div class="form-row" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="sk-background" ${data.background ? 'checked' : ''}>
+        <label for="sk-background" style="margin:0">Segundo plano <span class="hint">(opacidad reducida en el grafo)</span></label>
+      </div>
       ${sliderRow('Conocimiento previo (tamaño)', 'knownLevel', data.knownLevel)}
       <h3 style="margin-top:14px">Ejes de valor</h3>
       ${sliderRow('💼 Valor profesional', 'careerValue', data.axes.careerValue)}
@@ -551,6 +602,7 @@ const SkillGraph = {
         emoji: $val('sk-emoji') || '✦',
         color: pickedColor,
         knownLevel: (+$val('sk-knownLevel') || 0) / 100,
+        background: !!document.getElementById('sk-background')?.checked,
         axes: {
           careerValue:  (+$val('sk-careerValue')  || 0) / 100,
           personalPull: (+$val('sk-personalPull') || 0) / 100,
@@ -653,6 +705,18 @@ const SkillGraph = {
     });
     $('graph-axis-x')?.addEventListener('change', e => { this.axisX = e.target.value; this.applyLayoutPositions(); });
     $('graph-axis-y')?.addEventListener('change', e => { this.axisY = e.target.value; this.applyLayoutPositions(); });
+    $('graph-size-axis')?.addEventListener('change', e => { this.sizeAxis = e.target.value; });
+
+    // Restore saved node scale (persisted in localStorage)
+    const savedScale = localStorage.getItem('graphNodeScale') || 'auto';
+    this.nodeScale = savedScale === 'auto' ? 'auto' : parseFloat(savedScale);
+    const scaleSel = $('graph-node-scale');
+    if (scaleSel) scaleSel.value = savedScale;
+    scaleSel?.addEventListener('change', e => {
+      const v = e.target.value;
+      this.nodeScale = v === 'auto' ? 'auto' : parseFloat(v);
+      localStorage.setItem('graphNodeScale', v);
+    });
 
     this.bindCanvasEvents();
   },

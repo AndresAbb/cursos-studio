@@ -36,6 +36,27 @@ const Home = {
   },
 };
 
+function faviconUrl(url) {
+  try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`; }
+  catch { return ''; }
+}
+
+function renderQuickLinks() {
+  const bar = document.getElementById('quick-links-bar');
+  if (!bar) return;
+  const s = State.settings;
+  if (!s?.showQuickLinks || !s?.quickLinks?.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = s.quickLinks.map(({ url }) => {
+    const domain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
+    const fav = faviconUrl(url);
+    return `<a class="quick-link-btn" href="${escapeHTML(url)}" target="_blank" rel="noopener" title="${escapeHTML(domain)}">` +
+      `<img src="${escapeHTML(fav)}" alt="${escapeHTML(domain)}" width="20" height="20" onerror="this.style.display='none';this.nextSibling.style.display=''">` +
+      `<span class="quick-link-fallback" style="display:none">${escapeHTML(domain.slice(0,2).toUpperCase())}</span>` +
+      `</a>`;
+  }).join('');
+}
+
 // Exposed as window.appBoot so App.jsx can call it after React renders the DOM.
 window.appBoot = async () => {
   // 1. Health + capabilities
@@ -55,7 +76,7 @@ window.appBoot = async () => {
   }
 
   // 2. Settings + feature flags (courses.json, graph.json)
-  try { State.settings = await API.getSettings(); } catch {}
+  try { State.settings = await API.getSettings(); renderQuickLinks(); } catch {}
   try {
     const cfg = await API.config();
     State.features = {
@@ -77,6 +98,8 @@ window.appBoot = async () => {
   Calendar.init();
   GlobalCalendar.init();
   SkillGraph.init();
+  NetworkGraph.init();
+  CardDeck.init();
   Course.init();
   Externals.init();
   Ghosts.init();
@@ -118,6 +141,9 @@ window.appBoot = async () => {
     Course.loadList(),
     Ghosts.loadList(),
   ]);
+
+  // Wire home-page card deck button (rendered after React mounts)
+  $('hero-cta-cards')?.addEventListener('click', () => CardDeck.open());
 
   // 7. Initial view
   Course.showHome();

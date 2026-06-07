@@ -95,6 +95,14 @@ const API = {
   deleteSkill(id)                    { return this.req(`/api/skills/${id}`, { method: 'DELETE' }); },
   connectSkill(id, skillId, strength){ return this.req(`/api/skills/${id}/connect`, { method: 'POST', body: JSON.stringify({ skillId, strength }) }); },
   disconnectSkill(id, skillId)       { return this.req(`/api/skills/${id}/disconnect`, { method: 'POST', body: JSON.stringify({ skillId }) }); },
+  todayObligations()                 { return this.req('/api/today-obligations'); },
+  addLearning(id, data)              { return this.req(`/api/skills/${id}/learn`, { method: 'POST', body: JSON.stringify(data) }); },
+
+  // Network nodes (Networking map)
+  listNetworkNodes()                 { return this.req('/api/network-nodes'); },
+  createNetworkNode(data)            { return this.req('/api/network-nodes', { method: 'POST', body: JSON.stringify(data) }); },
+  updateNetworkNode(id, data)        { return this.req(`/api/network-nodes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); },
+  deleteNetworkNode(id)              { return this.req(`/api/network-nodes/${id}`, { method: 'DELETE' }); },
 
   // Upload
   async upload(file) {

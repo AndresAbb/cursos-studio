@@ -1,8 +1,9 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { Course, Module, ExternalCourse, Settings } = require('./models');
+const { buildMongoUri } = require('./mongoUri');
 
-const URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cursos_studio';
+const URI = buildMongoUri();
 
 async function seed() {
   await mongoose.connect(URI);

@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+*.log
+.DS_Store
+mds/
+public/uploads/*
+!public/uploads/.gitkeep
+.claude
+tests
+*.bat
+Dockerfile
+.dockerignore
+docker-compose.yml

@@ -10,17 +10,18 @@ const multer = require('multer');
 const crypto = require('crypto');
 const os     = require('os');
 
-const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend, Skill, GhostCourse } = require('./models');
+const { Course, Module, Note, Sticker, Exam, ExternalCourse, Settings, Friend, Skill, GhostCourse, NetworkNode } = require('./models');
 const { isAvailable: ytdlpAvailable, fetchPlaylist } = require('./ytdlp');
 const { isConfigured: spotifyConfigured, fetchItems: spotifyFetchItems } = require('./services/spotify');
 const { checkEmbed } = require('./services/embedCheck');
 const { writeNote } = require('./services/obsidian');
 const { generateExam: aiGenerateExam, isConfigured: aiConfigured } = require('./services/ai');
 const auth = require('./auth');
+const { buildMongoUri, redactMongoUri } = require('./mongoUri');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cursos_studio';
+const MONGODB_URI = buildMongoUri();
 
 // ─── Local config files (read once at boot) ──────
 // courses.json — feature flags for course-level behaviour (e.g. multiplayer)
@@ -77,13 +78,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } });
 
+// In-memory upload for the JSON course importer — the file is parsed and
+// discarded, never written to /uploads.
+const jsonUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
 // ─── DB Connection ───────────────────────────────
 let dbReady = false;
 async function connectDB() {
   try {
     await mongoose.connect(MONGODB_URI);
     dbReady = true;
-    console.log('✅ MongoDB conectado:', MONGODB_URI);
+    console.log('✅ MongoDB conectado:', redactMongoUri(MONGODB_URI));
   } catch (err) {
     console.error('❌ Error conectando a MongoDB:', err.message);
   }
@@ -133,7 +138,7 @@ app.get('/api/settings', w(async (req, res) => {
 }));
 
 app.put('/api/settings', w(async (req, res) => {
-  const allowed = ['obsidianVaultPath','obsidianAutoSave','aiProvider','aiModel'];
+  const allowed = ['obsidianVaultPath','obsidianAutoSave','aiProvider','aiModel','quickLinks','showQuickLinks'];
   const data = {};
   allowed.forEach(k => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
   const s = await Settings.findByIdAndUpdate('global', data, { new: true, upsert: true });
@@ -402,6 +407,95 @@ app.post('/api/courses/:courseId/modules/bulk', w(async (req, res) => {
 
   const created = await Module.insertMany(docs);
   res.json(created);
+}));
+
+// ─── JSON import ─────────────────────────────────
+// Import a whole course + its modules, OR add modules to an existing
+// course, from a single JSON document. Accepts either a multipart file
+// upload (field "file") or a raw application/json body.
+//
+// Format (see README → "Importar un curso desde JSON"):
+//   {
+//     "course":  { "title": "...", "emoji": "...", ... },   // new course
+//     "modules": [ { "title": "...", "type": "youtube", ... } ]
+//   }
+// To add modules to an existing course, omit "course" and pass the
+// course id as ?courseId=… (or a top-level "courseId" field). A bare
+// JSON array is treated as the modules list.
+const MODULE_TYPES  = ['youtube','spotify','web','web-link','text','ai-exam'];
+const COURSE_FIELDS = ['title','emoji','color','description','favicon','homepageUrl',
+                       'startDate','endDate','background','syllabusLabels'];
+const MODULE_FIELDS = ['title','type','url','week','dayOfWeek','order','description',
+                       'thumbnail','favicon','domain','textContent','examConfig',
+                       'importedFrom','done','watchedSeconds'];
+
+const pick = (src, fields) => {
+  const out = {};
+  for (const f of fields) if (src[f] !== undefined) out[f] = src[f];
+  return out;
+};
+
+app.post('/api/import/course', jsonUpload.single('file'), w(async (req, res) => {
+  // 1. Parse payload from the uploaded file or the JSON body.
+  let payload;
+  if (req.file) {
+    try { payload = JSON.parse(req.file.buffer.toString('utf8')); }
+    catch (e) { return res.status(400).json({ error: 'JSON inválido: ' + e.message }); }
+  } else if (req.body && typeof req.body === 'object') {
+    payload = req.body;
+  } else {
+    return res.status(400).json({ error: 'Falta el archivo JSON (campo "file") o un cuerpo JSON.' });
+  }
+  if (Array.isArray(payload)) payload = { modules: payload };   // bare array == modules
+  const rawModules = Array.isArray(payload.modules) ? payload.modules : [];
+
+  // 2. Resolve target course: existing (courseId) or new (course object).
+  const courseId = req.query.courseId || payload.courseId;
+  let course;
+  if (courseId) {
+    course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ error: 'Curso no encontrado: ' + courseId });
+  } else {
+    if (!payload.course || !payload.course.title) {
+      return res.status(400).json({
+        error: 'Para crear un curso nuevo incluye "course" con al menos "title". ' +
+               'Para añadir módulos a uno existente, pasa ?courseId=… .',
+      });
+    }
+    const data = pick(payload.course, COURSE_FIELDS);
+    if (data.homepageUrl && !data.favicon) {
+      const { favicon } = deriveFavicon(data.homepageUrl);
+      if (favicon) data.favicon = favicon;
+    }
+    course = await Course.create(data);
+  }
+
+  // 3. Validate + build module docs (unknown fields are dropped by pick()).
+  const errors = [];
+  const docs = rawModules.map((m, i) => {
+    const d = pick(m || {}, MODULE_FIELDS);
+    if (!d.title) errors.push(`módulo #${i + 1}: falta "title"`);
+    if (!d.type)  errors.push(`módulo #${i + 1}: falta "type"`);
+    else if (!MODULE_TYPES.includes(d.type)) {
+      errors.push(`módulo #${i + 1}: "type" inválido "${d.type}" (usa: ${MODULE_TYPES.join(', ')})`);
+    }
+    d.courseId = course._id;
+    return d;
+  });
+
+  if (errors.length) {
+    // Roll back a freshly-created course so a bad import leaves no orphan.
+    if (!courseId) await Course.deleteOne({ _id: course._id });
+    return res.status(400).json({ error: 'Errores de validación en los módulos', details: errors });
+  }
+
+  const created = docs.length ? await Module.insertMany(docs) : [];
+  res.json({
+    course,
+    createdCourse: !courseId,
+    modulesCreated: created.length,
+    modules: created,
+  });
 }));
 
 app.patch('/api/modules/:id', w(async (req, res) => {
@@ -777,6 +871,87 @@ app.post('/api/skills/:id/disconnect', w(async (req, res) => {
   if (!b) return res.status(400).json({ error: 'skillId requerido' });
   await Skill.findByIdAndUpdate(a, { $pull: { connections: { skillId: b } } });
   await Skill.findByIdAndUpdate(b, { $pull: { connections: { skillId: a } } });
+  res.json({ ok: true });
+}));
+
+// Today's scheduled-module completion status (used by card deck lock)
+app.get('/api/today-obligations', w(async (req, res) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const courses = await Course.find({ archived: { $ne: true } }).lean();
+  let total = 0, done = 0;
+  for (const c of courses) {
+    if (!c.startDate) continue;
+    const modules = await Module.find({ courseId: c._id }).lean();
+    for (const m of modules) {
+      const sched = moduleScheduledDate(m, c);
+      if (sched.getTime() === today.getTime()) {
+        total++;
+        if (m.done) done++;
+      }
+    }
+  }
+  res.json({ met: total === 0 || done === total, total, done });
+}));
+
+// Skill card cycle colors (used when cardValue wraps past K)
+const SKILL_CYCLE_COLORS = [
+  '#7c5ce0','#c8622a','#4a7c59','#5b4a8a','#b84f7a',
+  '#d4a017','#2a6e8a','#7a4a2a','#3a6a7a','#2a7a6a',
+];
+
+// Add a learning experience to a skill card
+app.post('/api/skills/:id/learn', w(async (req, res) => {
+  const skill = await Skill.findById(req.params.id);
+  if (!skill) return res.status(404).json({ error: 'No encontrado' });
+  const addValue = Math.max(1, Math.min(10, Number(req.body.value) || 1));
+  const note = String(req.body.note || '').slice(0, 500);
+
+  skill.learningExperiences.push({ value: addValue, note, date: new Date() });
+
+  let newCardValue = (skill.cardValue || 1) + addValue;
+  if (newCardValue > 13) {
+    skill.cardCycle = (skill.cardCycle || 0) + 1;
+    newCardValue = ((newCardValue - 1) % 13) + 1;
+    skill.color = SKILL_CYCLE_COLORS[skill.cardCycle % SKILL_CYCLE_COLORS.length];
+  }
+  skill.cardValue = newCardValue;
+  await skill.save();
+  res.json(skill.toObject());
+}));
+
+// ════════════════════════════════════════════════
+// NETWORK NODES (Networking map)
+// ════════════════════════════════════════════════
+// The six "worlds" seeded the first time the map is opened. Stored in the
+// DB afterwards so positions and projects persist and can be customized.
+const NET_DEFAULT_NODES = [
+  { key: 'academic',         name: 'Mundo Académico',          emoji: '🎓', color: '#2a6e8a', order: 0 },
+  { key: 'finance',          name: 'Mundo Financiero',         emoji: '💼', color: '#4a7c59', order: 1 },
+  { key: 'teaching',         name: 'Mundo de la Enseñanza',    emoji: '📚', color: '#d4a017', order: 2 },
+  { key: 'entrepreneurship', name: 'Mundo Emprendedor',        emoji: '🚀', color: '#c8622a', order: 3 },
+  { key: 'cultural',         name: 'Mundo Cultural',           emoji: '🎭', color: '#b84f7a', order: 4 },
+  { key: 'nonprofit',        name: 'Mundo Sin Fines de Lucro', emoji: '🤲', color: '#5b4a8a', order: 5 },
+];
+
+app.get('/api/network-nodes', w(async (req, res) => {
+  let nodes = await NetworkNode.find().sort({ order: 1, createdAt: 1 }).lean();
+  if (!nodes.length) {
+    await NetworkNode.insertMany(NET_DEFAULT_NODES);
+    nodes = await NetworkNode.find().sort({ order: 1, createdAt: 1 }).lean();
+  }
+  res.json(nodes);
+}));
+
+app.post('/api/network-nodes', w(async (req, res) => {
+  res.json(await NetworkNode.create(req.body));
+}));
+
+app.patch('/api/network-nodes/:id', w(async (req, res) => {
+  res.json(await NetworkNode.findByIdAndUpdate(req.params.id, req.body, { new: true }));
+}));
+
+app.delete('/api/network-nodes/:id', w(async (req, res) => {
+  await NetworkNode.findByIdAndDelete(req.params.id);
   res.json({ ok: true });
 }));
 

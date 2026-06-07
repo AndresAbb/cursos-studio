@@ -39,7 +39,22 @@ npm start             # http://localhost:3000
 
 ```
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/cursos_studio
+
+# MongoDB — la cadena de conexión se construye a partir de estas partes.
+# Ambos modos de arranque (run_local.bat nativo y docker compose) comparten
+# estos valores y apuntan a la MISMA base de datos; solo cambia el host
+# (Docker sobrescribe MONGO_HOST a host.docker.internal).
+MONGO_HOST=localhost:27017
+MONGO_DB=cursos_studio
+# Deja USER/PASS vacíos para correr SIN auth (solo localhost).
+# Para activar auth, ver "Seguridad: MongoDB con autenticación" más abajo.
+MONGO_USER=
+MONGO_PASS=
+# Solo los usa setup-mongo-auth.bat (no se usan en runtime):
+MONGO_ADMIN_USER=
+MONGO_ADMIN_PASS=
+# Alternativa: cadena completa (p. ej. Atlas). Si se define, ignora lo de arriba.
+# MONGODB_URI=
 
 # IA para exámenes (opcional, ambos opcionales)
 OPENAI_API_KEY=
@@ -56,6 +71,62 @@ SPOTIFY_CLIENT_SECRET=
 APP_PASSWORD=
 AUTH_SECRET=          # opcional: mantén sesiones activas tras reinicio
 ```
+
+## Docker
+
+La app corre en un contenedor; **MongoDB corre directamente en el host**
+(no en un contenedor). El contenedor se conecta a la base del host vía
+`host.docker.internal`, así que `run_local.bat` (nativo) y Docker comparten
+la MISMA base `cursos_studio`.
+
+```bash
+docker compose up -d --build     # construir + arrancar la app
+docker compose logs -f app       # ver logs
+docker compose down              # detener (la DB del host no se toca)
+```
+
+App en `http://localhost:3000`. El único valor que Docker cambia respecto al
+arranque nativo es `MONGO_HOST`; las credenciales y el nombre de la base
+salen de `.env`.
+
+## Seguridad: MongoDB con autenticación
+
+Por defecto MongoDB no pide credenciales. Si expones el host (o quieres
+defensa en profundidad detrás del firewall), activa autenticación. Las
+credenciales viven una sola vez en `.env` (`MONGO_USER` / `MONGO_PASS`) y
+las usan **ambos** modos de arranque contra la misma base compartida.
+
+1. **Define credenciales** en `.env` (`MONGO_USER`, `MONGO_PASS`, y
+   `MONGO_ADMIN_USER` / `MONGO_ADMIN_PASS` para el usuario root).
+2. **Crea los usuarios** mientras MongoDB aún tiene auth desactivada:
+
+   ```bash
+   setup-mongo-auth.bat        # o: node server/setupAuth.js
+   ```
+
+   Crea el usuario de la app (`readWrite` solo sobre `cursos_studio`) y el
+   admin, usando exactamente las credenciales de `.env`. Es idempotente.
+3. **Activa autorización** en `mongod.cfg` (p. ej.
+   `C:\Program Files\MongoDB\Server\8.3\bin\mongod.cfg`) y reinicia:
+
+   ```yaml
+   security:
+     authorization: enabled
+   net:
+     bindIp: 127.0.0.1,0.0.0.0   # para que el contenedor pueda conectar
+   ```
+
+   ```powershell
+   Restart-Service MongoDB
+   ```
+
+4. **Arranca** con `run_local.bat` o `docker compose up -d` — ambos se
+   autentican como `MONGO_USER`. El log muestra la URI con la contraseña
+   enmascarada.
+
+> ⚠️ `bindIp: 0.0.0.0` hace que Mongo escuche en todas las interfaces.
+> **Bloquea el puerto 27017 en el firewall** para que solo el host/Docker
+> lo alcancen; la autenticación es tu protección principal.
 
 ## Arquitectura: cada instancia es tuya
 
@@ -146,6 +217,91 @@ Sin yt-dlp puedes seguir creando módulos individuales de YouTube; solo perderá
 | **Texto** | instrucciones, notas guía | Markdown con preview |
 | **Examen IA** | exámenes recurrentes | OpenAI/Anthropic, o modo manual |
 
+## Importar un curso desde JSON
+
+`POST /api/import/course` crea un curso completo con sus módulos, o añade
+módulos a un curso existente, a partir de un único documento JSON.
+
+**Dos formas de enviarlo:**
+
+```bash
+# a) Subiendo un archivo (multipart, campo "file")
+curl -F "file=@mi-curso.json" http://localhost:3000/api/import/course
+
+# b) Como cuerpo JSON directo
+curl -H "Content-Type: application/json" -d @mi-curso.json \
+     http://localhost:3000/api/import/course
+```
+
+> Si activaste `APP_PASSWORD`, incluye la cookie de sesión (haz login primero).
+
+**Formato del archivo:**
+
+```jsonc
+{
+  // "course" → crea un curso NUEVO. Solo "title" es obligatorio.
+  "course": {
+    "title": "Diseño UX — Nivel Inicial",   // obligatorio
+    "emoji": "🎨",
+    "color": "#c8622a",
+    "description": "Curso de muestra.",
+    "homepageUrl": "https://ejemplo.com",    // si falta favicon, se deriva solo
+    "startDate": "2026-01-15",
+    "endDate": "2026-03-15",
+    "background": { "type": "color", "value": "#f5f0e8" }
+  },
+  // "modules" → lista de módulos. "title" y "type" son obligatorios.
+  "modules": [
+    {
+      "title": "Bienvenida",
+      "type": "youtube",                     // youtube|spotify|web|web-link|text|ai-exam
+      "url": "https://youtu.be/abc",
+      "week": 0,                             // semana del cronograma (0 = primera)
+      "dayOfWeek": 1,                        // 0=domingo … 6=sábado
+      "order": 0,
+      "description": "Video introductorio"
+    },
+    {
+      "title": "Lectura guía",
+      "type": "text",
+      "textContent": "# Markdown\nContenido de la lección…",
+      "week": 0, "dayOfWeek": 3
+    },
+    {
+      "title": "Examen Semana 1",
+      "type": "ai-exam",
+      "week": 1,
+      "examConfig": {
+        "prompt": "Evalúa fundamentos de UX",
+        "examType": "mixed",                 // multiple-choice|essay|project|mixed|case-study|oral
+        "difficulty": "intermediate",        // introductory|intermediate|advanced|expert
+        "questionCount": 10,
+        "timeLimit": 30,
+        "provider": "manual"                 // openai|anthropic|manual
+      }
+    }
+  ]
+}
+```
+
+**Añadir módulos a un curso existente** — omite `"course"` y pasa el id del
+curso por query (`?courseId=…`) o como campo `"courseId"`. En ese caso un
+array JSON suelto también se acepta como la lista de módulos:
+
+```bash
+curl -F "file=@mas-modulos.json" \
+     "http://localhost:3000/api/import/course?courseId=662f1a…"
+```
+
+**Notas de comportamiento:**
+
+- Campos desconocidos se ignoran; campos opcionales toman sus valores por
+  defecto. No se puede inyectar `_id` ni `courseId` por módulo.
+- Si algún módulo no tiene `title`/`type` válidos, **nada se importa**:
+  responde `400` con `details`, y si el curso era nuevo se revierte (no
+  quedan cursos huérfanos).
+- Respuesta `200`: `{ course, createdCourse, modulesCreated, modules }`.
+
 ## Modo de exámenes IA
 
 1. **Auto (con key)**: define un prompt + cantidad de preguntas + tiempo. El examen se genera y queda **bloqueado** hasta la fecha del módulo. Si lo regeneras, se vuelve a bloquear.
@@ -169,6 +325,8 @@ cursos-studio/
 ├── server/
 │   ├── index.js
 │   ├── models.js
+│   ├── mongoUri.js      # construye la cadena de conexión desde .env
+│   ├── setupAuth.js     # crea usuarios de MongoDB (auth opcional)
 │   ├── seed.js
 │   └── services/
 │       ├── ytdlp.js
