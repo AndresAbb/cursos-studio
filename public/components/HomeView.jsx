@@ -9,6 +9,7 @@ function HomeView() {
         <p className="hero-text" id="hero-greeting">Hola</p>
         <p className="hero-quote" id="hero-quote"></p>
         <p className="hero-quote-author" id="hero-quote-author"></p>
+        <p className="hero-zen" id="hero-zen"></p>
       </div>
       <div className="home-actions">
         <button className="btn btn-primary" id="hero-cta">✨ Crear curso</button>

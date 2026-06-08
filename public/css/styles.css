@@ -1254,6 +1254,21 @@ body[data-theme="night"] .crono-bucket-now { background: var(--gold); color: #1a
   letter-spacing: .3px;
 }
 
+/* Daily line from the Zen of Estudio Sostenible (ZEN.md) */
+.hero-zen {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, .08);
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text2);
+  opacity: .85;
+  letter-spacing: .2px;
+}
+.hero-zen:empty { display: none; }
+.hero-dynamic[data-mood="night"] .hero-zen,
+.hero-dynamic[data-mood="evening"] .hero-zen { border-top-color: rgba(255, 255, 255, .14); }
+
 /* ─── CRONOGRAMA (home timeline) ────────────────── */
 .crono-block {
   margin: 24px 0 8px;

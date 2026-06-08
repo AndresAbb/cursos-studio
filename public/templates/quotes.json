@@ -1,4 +1,20 @@
 {
+  "zen": [
+    "Lo que hagas, dale un inicio y un final.",
+    "Pensar y hacer importan; solo pensar necesita un límite.",
+    "Hacerlo con constancia es bueno.",
+    "Irte y volver de todos modos es la prueba de que eres mejor.",
+    "Sé honesto sobre lo que de verdad quieres.",
+    "Ponte en posición de liderar.",
+    "Si tus ojos se cansan, cierra la pantalla y abre un libro; vuelve solo con una idea.",
+    "Sin sueño no hay tiempo, ni energía, ni grandes ideas.",
+    "Diez minutos honestos vencen a la hora que nunca empiezas.",
+    "Aparecer en pequeño también cuenta.",
+    "Un día perdido se mueve, no se pierde.",
+    "Persigue una meta a fondo esta semana; mantén el resto apenas tibias.",
+    "Deja holgura — la vida siempre pide un poco.",
+    "El descanso es parte del plan, no una pausa de él."
+  ],
   "greetings": {
     "dawn":      ["Madrugando", "Antes que el sol", "Silencio fértil", "Hora de los búhos"],
     "morning":   ["Buenos días", "Empieza el día", "Café y enfoque", "Manos a la obra"],

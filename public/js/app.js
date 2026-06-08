@@ -27,6 +27,7 @@ const Home = {
     const gEl = $('hero-greeting');if (gEl) gEl.innerHTML      = `${escapeHTML(pick.greeting)}<span class="hero-comma">,</span><br/><em>${escapeHTML(State.settings?.displayName || 'aprende con intención')}.</em>`;
     const qEl = $('hero-quote');   if (qEl) qEl.textContent    = `“${pick.quote.text}”`;
     const aEl = $('hero-quote-author'); if (aEl) aEl.textContent = pick.quote.author ? `— ${pick.quote.author}` : '';
+    const zEl = $('hero-zen'); if (zEl) zEl.textContent = pickZenForNow(State.quotes) || '';
   },
 
   init() {

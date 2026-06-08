@@ -256,6 +256,13 @@ function pickQuoteForNow(quotes, d = new Date()) {
   return { mood, greeting, quote, day };
 }
 
+// One Zen line per day, rotating deterministically through quotes.zen.
+function pickZenForNow(quotes, d = new Date()) {
+  const pool = quotes?.zen || [];
+  if (!pool.length) return null;
+  return _hashPick(pool, `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-zen`);
+}
+
 async function loadQuotes() {
   if (State.quotes) return State.quotes;
   try {
